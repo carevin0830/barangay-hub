@@ -7,6 +7,7 @@ import { Building2, FileText, Calendar, BarChart3, Settings, Award, FolderOpen }
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Residents from "./pages/Residents";
+import Households from "./pages/Households";
 import Placeholder from "./pages/Placeholder";
 import NotFound from "./pages/NotFound";
 
@@ -22,16 +23,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/residents" element={<Residents />} />
-            <Route 
-              path="/households" 
-              element={
-                <Placeholder 
-                  title="Households Module" 
-                  description="Track households by zone, manage members, and monitor utilities. Coming soon."
-                  icon={Building2}
-                />
-              } 
-            />
+            <Route path="/households" element={<Households />} />
             <Route 
               path="/officials" 
               element={
