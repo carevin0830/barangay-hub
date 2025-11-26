@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Search, Home, MapPin, Edit2, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import HouseholdsMap from "@/components/HouseholdsMap";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -165,6 +166,14 @@ const Households = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      </div>
+
+      {/* Map */}
+      <div className="rounded-lg border border-border bg-card overflow-hidden mb-6">
+        <div className="p-6 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">Households Map</h2>
+        </div>
+        <HouseholdsMap className="w-full h-[400px]" />
       </div>
 
       {/* Households Table */}
