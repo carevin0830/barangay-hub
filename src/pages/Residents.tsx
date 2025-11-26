@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, UserPlus, FileText, MapPin, Edit2, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -40,6 +42,19 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
+type Resident = {
+  id: string;
+  full_name: string;
+  age: number;
+  gender: string;
+  purok: string;
+  status: string;
+  special_status: string | null;
+  household_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 const initialResidents = [
   { id: 1, name: "CATHERINE ARTIENDA DUMLAO", age: 42, houseNumber: "106", status: "Active", specialStatus: "—", location: "Zone 1" },
   { id: 2, name: "Floricante L Cortez", age: 32, houseNumber: "103", status: "Active", specialStatus: "Senior", location: "Zone 2" },
@@ -49,12 +64,119 @@ const initialResidents = [
 
 const Residents = () => {
   const { toast } = useToast();
-  const [residents, setResidents] = useState(initialResidents);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedResident, setSelectedResident] = useState<typeof initialResidents[0] | null>(null);
+  const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
+  const [newResident, setNewResident] = useState({
+    full_name: "",
+    age: "",
+    gender: "",
+    purok: "",
+    special_status: "",
+    household_id: ""
+  });
+
+  const { data: residents = [] } = useQuery<Resident[]>({
+    queryKey: ['residents'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('residents')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as Resident[];
+    }
+  });
+
+  const addMutation = useMutation({
+    mutationFn: async (resident: any) => {
+      const { data, error } = await supabase
+        .from('residents')
+        .insert([resident])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['residents'] });
+      toast({
+        title: "Resident added",
+        description: "New resident has been added successfully.",
+      });
+      setIsAddDialogOpen(false);
+      setNewResident({
+        full_name: "",
+        age: "",
+        gender: "",
+        purok: "",
+        special_status: "",
+        household_id: ""
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to add resident. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (resident: any) => {
+      const { data, error } = await supabase
+        .from('residents')
+        .update({
+          full_name: resident.full_name,
+          age: resident.age,
+          gender: resident.gender,
+          purok: resident.purok,
+          status: resident.status,
+          special_status: resident.special_status
+        })
+        .eq('id', resident.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['residents'] });
+      toast({
+        title: "Resident updated",
+        description: "Resident information has been updated.",
+      });
+      setIsEditDialogOpen(false);
+      setSelectedResident(null);
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('residents')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['residents'] });
+      toast({
+        title: "Resident deleted",
+        description: "Resident has been removed from the registry.",
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedResident(null);
+    }
+  });
 
   const getStatusBadgeStyle = (status: string) => {
     if (status === "Active") {
@@ -67,51 +189,52 @@ const Residents = () => {
     return currentStatus === "Active" ? "Inactive" : "Active";
   };
 
-  const handleStatusClick = (resident: typeof initialResidents[0]) => {
+  const handleStatusClick = async (resident: Resident) => {
     const newStatus = cycleStatus(resident.status);
-    setResidents(residents.map(r => 
-      r.id === resident.id ? { ...r, status: newStatus } : r
-    ));
-    toast({
-      title: "Status updated",
-      description: `${resident.name}'s status changed to ${newStatus}.`,
-    });
+    await updateMutation.mutateAsync({ ...resident, status: newStatus });
   };
 
-  const handleEdit = (resident: typeof initialResidents[0]) => {
+  const handleEdit = (resident: Resident) => {
     setSelectedResident(resident);
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (resident: typeof initialResidents[0]) => {
+  const handleDelete = (resident: Resident) => {
     setSelectedResident(resident);
     setIsDeleteDialogOpen(true);
   };
 
   const confirmDelete = () => {
     if (selectedResident) {
-      setResidents(residents.filter(r => r.id !== selectedResident.id));
-      toast({
-        title: "Resident deleted",
-        description: `${selectedResident.name} has been removed from the registry.`,
-      });
-      setIsDeleteDialogOpen(false);
-      setSelectedResident(null);
+      deleteMutation.mutate(selectedResident.id);
     }
   };
 
   const saveEdit = () => {
     if (selectedResident) {
-      setResidents(residents.map(r => 
-        r.id === selectedResident.id ? selectedResident : r
-      ));
-      toast({
-        title: "Resident updated",
-        description: `${selectedResident.name}'s information has been updated.`,
-      });
-      setIsEditDialogOpen(false);
-      setSelectedResident(null);
+      updateMutation.mutate(selectedResident);
     }
+  };
+
+  const handleAddResident = () => {
+    if (!newResident.full_name || !newResident.age || !newResident.gender || !newResident.purok) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in all required fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    addMutation.mutate({
+      full_name: newResident.full_name,
+      age: parseInt(newResident.age),
+      gender: newResident.gender,
+      purok: newResident.purok,
+      special_status: newResident.special_status || null,
+      household_id: newResident.household_id || null,
+      status: "Active"
+    });
   };
 
   return (
@@ -141,53 +264,71 @@ const Residents = () => {
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="fullname">Full Name</Label>
-                  <Input id="fullname" placeholder="Juan Dela Cruz" />
+                  <Input 
+                    id="fullname" 
+                    placeholder="Juan Dela Cruz"
+                    value={newResident.full_name}
+                    onChange={(e) => setNewResident({...newResident, full_name: e.target.value})}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="age">Age</Label>
-                    <Input id="age" type="number" placeholder="25" />
+                    <Input 
+                      id="age" 
+                      type="number" 
+                      placeholder="25"
+                      value={newResident.age}
+                      onChange={(e) => setNewResident({...newResident, age: e.target.value})}
+                    />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="gender">Gender</Label>
-                    <Select>
+                    <Select value={newResident.gender} onValueChange={(value) => setNewResident({...newResident, gender: value})}>
                       <SelectTrigger id="gender">
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="zone">Zone/Purok</Label>
-                  <Input id="zone" placeholder="e.g., Zone 1" />
+                  <Input 
+                    id="zone" 
+                    placeholder="e.g., Zone 1"
+                    value={newResident.purok}
+                    onChange={(e) => setNewResident({...newResident, purok: e.target.value})}
+                  />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select>
-                    <SelectTrigger id="status">
+                  <Label htmlFor="special-status">Special Status</Label>
+                  <Select value={newResident.special_status} onValueChange={(value) => setNewResident({...newResident, special_status: value})}>
+                    <SelectTrigger id="special-status">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="regular">Regular</SelectItem>
-                      <SelectItem value="senior">Senior Citizen</SelectItem>
-                      <SelectItem value="pwd">PWD</SelectItem>
+                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="Senior Citizen">Senior Citizen</SelectItem>
+                      <SelectItem value="PWD">PWD</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="household">Household ID</Label>
-                  <Input id="household" placeholder="HH-001" />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button className="bg-primary hover:bg-primary/90">Save Resident</Button>
+                <Button 
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={handleAddResident}
+                  disabled={addMutation.isPending}
+                >
+                  {addMutation.isPending ? "Saving..." : "Save Resident"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -227,9 +368,9 @@ const Residents = () => {
           <TableBody>
             {residents.map((resident) => (
               <TableRow key={resident.id}>
-                <TableCell className="font-medium">{resident.name}</TableCell>
+                <TableCell className="font-medium">{resident.full_name}</TableCell>
                 <TableCell>{resident.age}</TableCell>
-                <TableCell>{resident.houseNumber}</TableCell>
+                <TableCell>{resident.purok}</TableCell>
                 <TableCell>
                   <Badge 
                     variant="outline" 
@@ -239,7 +380,7 @@ const Residents = () => {
                     {resident.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-muted-foreground">{resident.specialStatus}</TableCell>
+                <TableCell className="text-muted-foreground">{resident.special_status || "—"}</TableCell>
                 <TableCell>
                   <MapPin className="h-4 w-4 text-muted-foreground inline" />
                 </TableCell>
@@ -284,8 +425,8 @@ const Residents = () => {
                 <Label htmlFor="edit-fullname">Full Name</Label>
                 <Input 
                   id="edit-fullname" 
-                  value={selectedResident.name}
-                  onChange={(e) => setSelectedResident({...selectedResident, name: e.target.value})}
+                  value={selectedResident.full_name}
+                  onChange={(e) => setSelectedResident({...selectedResident, full_name: e.target.value})}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -299,35 +440,42 @@ const Residents = () => {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-house">House Number</Label>
-                  <Input 
-                    id="edit-house" 
-                    value={selectedResident.houseNumber}
-                    onChange={(e) => setSelectedResident({...selectedResident, houseNumber: e.target.value})}
-                  />
+                  <Label htmlFor="edit-gender">Gender</Label>
+                  <Select 
+                    value={selectedResident.gender}
+                    onValueChange={(value) => setSelectedResident({...selectedResident, gender: value})}
+                  >
+                    <SelectTrigger id="edit-gender">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-zone">Zone/Purok</Label>
                 <Input 
                   id="edit-zone" 
-                  value={selectedResident.location}
-                  onChange={(e) => setSelectedResident({...selectedResident, location: e.target.value})}
+                  value={selectedResident.purok}
+                  onChange={(e) => setSelectedResident({...selectedResident, purok: e.target.value})}
                   placeholder="e.g., Zone 1"
                 />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-special">Special Status</Label>
                 <Select 
-                  value={selectedResident.specialStatus}
-                  onValueChange={(value) => setSelectedResident({...selectedResident, specialStatus: value})}
+                  value={selectedResident.special_status || ""}
+                  onValueChange={(value) => setSelectedResident({...selectedResident, special_status: value})}
                 >
                   <SelectTrigger id="edit-special">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="—">None</SelectItem>
-                    <SelectItem value="Senior">Senior Citizen</SelectItem>
+                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="Senior Citizen">Senior Citizen</SelectItem>
                     <SelectItem value="PWD">PWD</SelectItem>
                   </SelectContent>
                 </Select>
@@ -351,7 +499,7 @@ const Residents = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Resident</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {selectedResident?.name}? This action cannot be undone.
+              Are you sure you want to delete {selectedResident?.full_name}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
