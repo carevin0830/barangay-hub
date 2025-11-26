@@ -3,16 +3,96 @@ import DashboardCard from "@/components/DashboardCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import heroImage from "@/assets/barangay-hero.jpg";
-
-const populationData = [
-  { ageGroup: "0-18", count: 245 },
-  { ageGroup: "19-30", count: 382 },
-  { ageGroup: "31-45", count: 428 },
-  { ageGroup: "46-60", count: 315 },
-  { ageGroup: "60+", count: 187 },
-];
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useMemo } from "react";
 
 const Dashboard = () => {
+  const { data: residents = [] } = useQuery({
+    queryKey: ['residents'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('residents')
+        .select('*')
+        .eq('status', 'Active');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: households = [] } = useQuery({
+    queryKey: ['households'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('households')
+        .select('*');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: certificates = [] } = useQuery({
+    queryKey: ['certificates'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('certificates')
+        .select('*');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: ordinances = [] } = useQuery({
+    queryKey: ['ordinances'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ordinances')
+        .select('*')
+        .eq('status', 'Active');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const populationData = useMemo(() => {
+    const ageGroups = {
+      "0-18": 0,
+      "19-30": 0,
+      "31-45": 0,
+      "46-60": 0,
+      "60+": 0,
+    };
+
+    residents.forEach((resident) => {
+      const age = resident.age;
+      if (age <= 18) ageGroups["0-18"]++;
+      else if (age <= 30) ageGroups["19-30"]++;
+      else if (age <= 45) ageGroups["31-45"]++;
+      else if (age <= 60) ageGroups["46-60"]++;
+      else ageGroups["60+"]++;
+    });
+
+    return Object.entries(ageGroups).map(([ageGroup, count]) => ({
+      ageGroup,
+      count,
+    }));
+  }, [residents]);
+
+  const recentResidentsCount = useMemo(() => {
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    return residents.filter(r => new Date(r.created_at) >= oneMonthAgo).length;
+  }, [residents]);
+
+  const recentHouseholdsCount = useMemo(() => {
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    return households.filter(h => new Date(h.created_at) >= oneMonthAgo).length;
+  }, [households]);
+
+  const pendingCertificates = useMemo(() => {
+    return certificates.filter(c => c.status === 'Pending').length;
+  }, [certificates]);
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -38,29 +118,29 @@ const Dashboard = () => {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
           <DashboardCard
             title="Total Residents"
-            value="1,557"
+            value={residents.length.toLocaleString()}
             icon={Users}
-            trend="+12 this month"
+            trend={`+${recentResidentsCount} this month`}
             trendUp
           />
           <DashboardCard
             title="Total Households"
-            value="423"
+            value={households.length.toLocaleString()}
             icon={Building2}
-            trend="+5 this month"
+            trend={`+${recentHouseholdsCount} this month`}
             trendUp
           />
           <DashboardCard
-            title="Ongoing Activities"
-            value="8"
+            title="Active Ordinances"
+            value={ordinances.length}
             icon={Activity}
-            trend="3 this week"
+            trend={`${ordinances.length} total`}
           />
           <DashboardCard
-            title="Reports Submitted"
-            value="24"
+            title="Certificates Issued"
+            value={certificates.length}
             icon={FileText}
-            trend="6 pending"
+            trend={`${pendingCertificates} pending`}
           />
         </div>
 
