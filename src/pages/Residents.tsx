@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, UserPlus, FileText, MapPin, Edit2, Trash2, Users } from "lucide-react";
+import { Search, UserPlus, MapPin, Edit2, Trash2, Users } from "lucide-react";
 import InteractiveMap from "@/components/InteractiveMap";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -295,105 +295,99 @@ const Residents = () => {
       {/* Top Actions Bar */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-foreground">Residents</h1>
-        <div className="flex gap-3">
-          <Button variant="outline" className="gap-2">
-            <FileText className="h-4 w-4" />
-            Generate Report
-          </Button>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90 gap-2">
-                <UserPlus className="h-4 w-4" />
-                Add Resident
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Add New Resident</DialogTitle>
-                <DialogDescription>
-                  Enter the resident's information. All fields are required.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-primary hover:bg-primary/90 gap-2">
+              <UserPlus className="h-4 w-4" />
+              Add Resident
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Add New Resident</DialogTitle>
+              <DialogDescription>
+                Enter the resident's information. All fields are required.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="fullname">Full Name</Label>
+                <Input 
+                  id="fullname" 
+                  placeholder="Juan Dela Cruz"
+                  value={newResident.full_name}
+                  onChange={(e) => setNewResident(prev => ({...prev, full_name: e.target.value}))}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="fullname">Full Name</Label>
+                  <Label htmlFor="age">Age</Label>
                   <Input 
-                    id="fullname" 
-                    placeholder="Juan Dela Cruz"
-                    value={newResident.full_name}
-                    onChange={(e) => setNewResident(prev => ({...prev, full_name: e.target.value}))}
+                    id="age" 
+                    type="number" 
+                    placeholder="25"
+                    value={newResident.age}
+                    onChange={(e) => setNewResident(prev => ({...prev, age: e.target.value}))}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="age">Age</Label>
-                    <Input 
-                      id="age" 
-                      type="number" 
-                      placeholder="25"
-                      value={newResident.age}
-                      onChange={(e) => setNewResident(prev => ({...prev, age: e.target.value}))}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="gender">Gender</Label>
-                    <Select value={newResident.gender} onValueChange={(value) => setNewResident(prev => ({...prev, gender: value}))}>
-                      <SelectTrigger id="gender">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="household">Household</Label>
-                  <Select value={newResident.household_id} onValueChange={handleHouseholdChange}>
-                    <SelectTrigger id="household">
-                      <SelectValue placeholder="Select household" />
+                  <Label htmlFor="gender">Gender</Label>
+                  <Select value={newResident.gender} onValueChange={(value) => setNewResident(prev => ({...prev, gender: value}))}>
+                    <SelectTrigger id="gender">
+                      <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
-                      {households.map((household: any) => (
-                        <SelectItem key={household.id} value={household.id}>
-                          House #{household.house_number} - {household.purok || household.street_address}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="special-status">Special Status</Label>
-                  <Select value={newResident.special_status} onValueChange={(value) => setNewResident(prev => ({...prev, special_status: value}))}>
-                    <SelectTrigger id="special-status">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {parseInt(newResident.age) >= 60 && (
-                        <SelectItem value="Senior Citizen">Senior Citizen</SelectItem>
-                      )}
-                      <SelectItem value="PWD">PWD</SelectItem>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button 
-                  className="bg-primary hover:bg-primary/90"
-                  onClick={handleAddResident}
-                  disabled={addMutation.isPending}
-                >
-                  {addMutation.isPending ? "Saving..." : "Save Resident"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+              <div className="grid gap-2">
+                <Label htmlFor="household">Household</Label>
+                <Select value={newResident.household_id} onValueChange={handleHouseholdChange}>
+                  <SelectTrigger id="household">
+                    <SelectValue placeholder="Select household" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {households.map((household: any) => (
+                      <SelectItem key={household.id} value={household.id}>
+                        House #{household.house_number} - {household.purok || household.street_address}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="special-status">Special Status</Label>
+                <Select value={newResident.special_status} onValueChange={(value) => setNewResident(prev => ({...prev, special_status: value}))}>
+                  <SelectTrigger id="special-status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {parseInt(newResident.age) >= 60 && (
+                      <SelectItem value="Senior Citizen">Senior Citizen</SelectItem>
+                    )}
+                    <SelectItem value="PWD">PWD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                className="bg-primary hover:bg-primary/90"
+                onClick={handleAddResident}
+                disabled={addMutation.isPending}
+              >
+                {addMutation.isPending ? "Saving..." : "Save Resident"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Statistics Cards */}
