@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, UserPlus, FileText, MapPin, Edit2, Trash2 } from "lucide-react";
+import InteractiveMap from "@/components/InteractiveMap";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,13 @@ type Resident = {
   household_id: string | null;
   created_at: string;
   updated_at: string;
+  households?: {
+    house_number: string;
+    purok: string;
+    street_address: string;
+    latitude: number;
+    longitude: number;
+  } | null;
 };
 
 const initialResidents = [
@@ -69,6 +77,7 @@ const Residents = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isMapDialogOpen, setIsMapDialogOpen] = useState(false);
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
   const [newResident, setNewResident] = useState({
     full_name: "",
@@ -84,7 +93,7 @@ const Residents = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('residents')
-        .select('*')
+        .select('*, households(house_number, purok, street_address, latitude, longitude)')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -216,6 +225,19 @@ const Residents = () => {
   const handleDelete = (resident: Resident) => {
     setSelectedResident(resident);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleViewLocation = (resident: Resident) => {
+    if (resident.households?.latitude && resident.households?.longitude) {
+      setSelectedResident(resident);
+      setIsMapDialogOpen(true);
+    } else {
+      toast({
+        title: "No location data",
+        description: "This resident's household doesn't have location coordinates.",
+        variant: "destructive"
+      });
+    }
   };
 
   const confirmDelete = () => {
@@ -413,7 +435,16 @@ const Residents = () => {
                 </TableCell>
                 <TableCell className="text-muted-foreground">{resident.special_status || "—"}</TableCell>
                 <TableCell>
-                  <MapPin className="h-4 w-4 text-muted-foreground inline" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 gap-2 text-primary hover:text-primary/80"
+                    onClick={() => handleViewLocation(resident)}
+                    disabled={!resident.households?.latitude || !resident.households?.longitude}
+                  >
+                    <MapPin className="h-4 w-4" />
+                    {resident.households?.purok || resident.households?.street_address || "—"}
+                  </Button>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
@@ -558,6 +589,32 @@ const Residents = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Location Map Dialog */}
+      <Dialog open={isMapDialogOpen} onOpenChange={setIsMapDialogOpen}>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle>Household Location</DialogTitle>
+            <DialogDescription>
+              {selectedResident?.full_name} - House #{selectedResident?.households?.house_number}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="h-[400px] rounded-lg overflow-hidden">
+            {selectedResident?.households?.latitude && selectedResident?.households?.longitude && (
+              <InteractiveMap
+                latitude={selectedResident.households.latitude}
+                longitude={selectedResident.households.longitude}
+                className="w-full h-full"
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsMapDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
