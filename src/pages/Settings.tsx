@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, Key, UserPlus, Trash2, Shield } from "lucide-react";
+import { Save, Key, UserPlus, Trash2, Shield, Download, Upload, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { z } from "zod";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("profile");
@@ -28,6 +29,32 @@ const Settings = () => {
   const [newUserFullName, setNewUserFullName] = useState("");
   const [newUserRole, setNewUserRole] = useState<"admin" | "staff" | "read_only">("staff");
   const [editUserRole, setEditUserRole] = useState<"admin" | "staff" | "read_only">("staff");
+
+  // Data management state
+  const [isBackupDialogOpen, setIsBackupDialogOpen] = useState(false);
+  const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [backupPassword1, setBackupPassword1] = useState("");
+  const [backupPassword2, setBackupPassword2] = useState("");
+  const [backupConfirmText, setBackupConfirmText] = useState("");
+  const [restorePassword1, setRestorePassword1] = useState("");
+  const [restorePassword2, setRestorePassword2] = useState("");
+  const [restoreConfirmText, setRestoreConfirmText] = useState("");
+  const [resetPassword1, setResetPassword1] = useState("");
+  const [resetPassword2, setResetPassword2] = useState("");
+  const [resetConfirmText, setResetConfirmText] = useState("");
+
+  // Validation schema
+  const dataManagementSchema = z.object({
+    password1: z.string().min(8, "Password must be at least 8 characters"),
+    password2: z.string().min(8, "Password must be at least 8 characters"),
+    confirmText: z.string().refine((val) => val === "confirm", {
+      message: "You must type 'confirm' exactly",
+    }),
+  }).refine((data) => data.password1 === data.password2, {
+    message: "Passwords don't match",
+    path: ["password2"],
+  });
 
   // Profile state
   const [fullName, setFullName] = useState("");
@@ -289,6 +316,114 @@ const Settings = () => {
       queryClient.invalidateQueries({ queryKey: ['all_users'] });
     } catch (error: any) {
       toast.error('Unable to delete user. Admin API access required.');
+    }
+  };
+
+  // Backup Database
+  const handleBackupDatabase = async () => {
+    const validation = dataManagementSchema.safeParse({
+      password1: backupPassword1,
+      password2: backupPassword2,
+      confirmText: backupConfirmText,
+    });
+
+    if (!validation.success) {
+      const errors = validation.error.flatten().fieldErrors;
+      toast.error(errors.password1?.[0] || errors.password2?.[0] || errors.confirmText?.[0] || "Validation failed");
+      return;
+    }
+
+    // Verify password
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user?.email || "",
+      password: backupPassword1,
+    });
+
+    if (signInError) {
+      toast.error("Password verification failed");
+      return;
+    }
+
+    try {
+      toast.success("Database backup initiated. This feature requires server-side implementation.");
+      setIsBackupDialogOpen(false);
+      setBackupPassword1("");
+      setBackupPassword2("");
+      setBackupConfirmText("");
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  // Restore Database
+  const handleRestoreDatabase = async () => {
+    const validation = dataManagementSchema.safeParse({
+      password1: restorePassword1,
+      password2: restorePassword2,
+      confirmText: restoreConfirmText,
+    });
+
+    if (!validation.success) {
+      const errors = validation.error.flatten().fieldErrors;
+      toast.error(errors.password1?.[0] || errors.password2?.[0] || errors.confirmText?.[0] || "Validation failed");
+      return;
+    }
+
+    // Verify password
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user?.email || "",
+      password: restorePassword1,
+    });
+
+    if (signInError) {
+      toast.error("Password verification failed");
+      return;
+    }
+
+    try {
+      toast.success("Database restore initiated. This feature requires server-side implementation.");
+      setIsRestoreDialogOpen(false);
+      setRestorePassword1("");
+      setRestorePassword2("");
+      setRestoreConfirmText("");
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  // Reset All Data
+  const handleResetAllData = async () => {
+    const validation = dataManagementSchema.safeParse({
+      password1: resetPassword1,
+      password2: resetPassword2,
+      confirmText: resetConfirmText,
+    });
+
+    if (!validation.success) {
+      const errors = validation.error.flatten().fieldErrors;
+      toast.error(errors.password1?.[0] || errors.password2?.[0] || errors.confirmText?.[0] || "Validation failed");
+      return;
+    }
+
+    // Verify password
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user?.email || "",
+      password: resetPassword1,
+    });
+
+    if (signInError) {
+      toast.error("Password verification failed");
+      return;
+    }
+
+    try {
+      toast.warning("Reset all data feature requires careful implementation with database cascading deletes.");
+      setIsResetDialogOpen(false);
+      setResetPassword1("");
+      setResetPassword2("");
+      setResetConfirmText("");
+    } catch (error: any) {
+      toast.error(error.message);
     }
   };
 
@@ -689,38 +824,197 @@ const Settings = () => {
                 </div>
                 <Button variant="outline">Light</Button>
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Language</p>
-                  <p className="text-sm text-muted-foreground">Select system language</p>
-                </div>
-                <Button variant="outline">English</Button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Timezone</p>
-                  <p className="text-sm text-muted-foreground">Set your timezone</p>
-                </div>
-                <Button variant="outline">GMT+8</Button>
-              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardTitle>Data Management</CardTitle>
-              <CardDescription>Backup and restore your data</CardDescription>
+              <CardDescription>Backup and restore your data (requires admin verification)</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full">
-                Backup Database
-              </Button>
-              <Button variant="outline" className="w-full">
-                Restore Database
-              </Button>
-              <Button variant="outline" className="w-full text-destructive">
-                Reset All Data
-              </Button>
+              <Dialog open={isBackupDialogOpen} onOpenChange={setIsBackupDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full">
+                    <Download className="h-4 w-4 mr-2" />
+                    Backup Database
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Backup Database</DialogTitle>
+                    <DialogDescription>
+                      This will create a backup of all barangay data. For security, please verify your identity.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="backup-password1">Enter Password</Label>
+                      <Input
+                        id="backup-password1"
+                        type="password"
+                        value={backupPassword1}
+                        onChange={(e) => setBackupPassword1(e.target.value)}
+                        placeholder="Your password"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="backup-password2">Confirm Password</Label>
+                      <Input
+                        id="backup-password2"
+                        type="password"
+                        value={backupPassword2}
+                        onChange={(e) => setBackupPassword2(e.target.value)}
+                        placeholder="Re-enter password"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="backup-confirm">Type "confirm" to proceed</Label>
+                      <Input
+                        id="backup-confirm"
+                        value={backupConfirmText}
+                        onChange={(e) => setBackupConfirmText(e.target.value)}
+                        placeholder="confirm"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => {
+                      setIsBackupDialogOpen(false);
+                      setBackupPassword1("");
+                      setBackupPassword2("");
+                      setBackupConfirmText("");
+                    }}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleBackupDatabase}>
+                      Backup Database
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={isRestoreDialogOpen} onOpenChange={setIsRestoreDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Restore Database
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Restore Database</DialogTitle>
+                    <DialogDescription>
+                      This will restore data from a backup. For security, please verify your identity.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="restore-password1">Enter Password</Label>
+                      <Input
+                        id="restore-password1"
+                        type="password"
+                        value={restorePassword1}
+                        onChange={(e) => setRestorePassword1(e.target.value)}
+                        placeholder="Your password"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="restore-password2">Confirm Password</Label>
+                      <Input
+                        id="restore-password2"
+                        type="password"
+                        value={restorePassword2}
+                        onChange={(e) => setRestorePassword2(e.target.value)}
+                        placeholder="Re-enter password"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="restore-confirm">Type "confirm" to proceed</Label>
+                      <Input
+                        id="restore-confirm"
+                        value={restoreConfirmText}
+                        onChange={(e) => setRestoreConfirmText(e.target.value)}
+                        placeholder="confirm"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => {
+                      setIsRestoreDialogOpen(false);
+                      setRestorePassword1("");
+                      setRestorePassword2("");
+                      setRestoreConfirmText("");
+                    }}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleRestoreDatabase}>
+                      Restore Database
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full text-destructive hover:text-destructive">
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Reset All Data
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="text-destructive">Reset All Data</DialogTitle>
+                    <DialogDescription>
+                      <span className="text-destructive font-semibold">WARNING:</span> This will permanently delete ALL data. This action cannot be undone. Please verify your identity.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="reset-password1">Enter Password</Label>
+                      <Input
+                        id="reset-password1"
+                        type="password"
+                        value={resetPassword1}
+                        onChange={(e) => setResetPassword1(e.target.value)}
+                        placeholder="Your password"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reset-password2">Confirm Password</Label>
+                      <Input
+                        id="reset-password2"
+                        type="password"
+                        value={resetPassword2}
+                        onChange={(e) => setResetPassword2(e.target.value)}
+                        placeholder="Re-enter password"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reset-confirm">Type "confirm" to proceed</Label>
+                      <Input
+                        id="reset-confirm"
+                        value={resetConfirmText}
+                        onChange={(e) => setResetConfirmText(e.target.value)}
+                        placeholder="confirm"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => {
+                      setIsResetDialogOpen(false);
+                      setResetPassword1("");
+                      setResetPassword2("");
+                      setResetConfirmText("");
+                    }}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleResetAllData} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Reset All Data
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
         </TabsContent>
