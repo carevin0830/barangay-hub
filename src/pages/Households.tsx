@@ -56,8 +56,8 @@ const Households = () => {
     house_number: '',
     purok: '',
     street_address: '',
-    latitude: 14.5995,
-    longitude: 120.9842,
+    latitude: 17.3619,
+    longitude: 120.7278,
     has_electricity: false,
     has_water: false,
   });
@@ -93,8 +93,8 @@ const Households = () => {
         house_number: '',
         purok: '',
         street_address: '',
-        latitude: 14.5995,
-        longitude: 120.9842,
+        latitude: 17.3619,
+        longitude: 120.7278,
         has_electricity: false,
         has_water: false,
       });
@@ -361,14 +361,14 @@ const Households = () => {
               <div className="grid gap-2">
                 <Label>Location on Map</Label>
                 <InteractiveMap 
-                  latitude={selectedHousehold.latitude || 14.5995}
-                  longitude={selectedHousehold.longitude || 120.9842}
+                  latitude={selectedHousehold.latitude || 17.3619}
+                  longitude={selectedHousehold.longitude || 120.7278}
                   onLocationChange={(lat, lng) => setSelectedHousehold({...selectedHousehold, latitude: lat, longitude: lng})}
                   className="w-full h-[300px] rounded-lg border border-border"
                 />
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
-                  {(selectedHousehold.latitude || 14.5995).toFixed(6)}, {(selectedHousehold.longitude || 120.9842).toFixed(6)}
+                  {(selectedHousehold.latitude || 17.3619).toFixed(6)}, {(selectedHousehold.longitude || 120.7278).toFixed(6)}
                 </p>
                 <p className="text-xs text-muted-foreground">Click map or drag marker to select location</p>
               </div>
