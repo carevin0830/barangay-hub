@@ -315,7 +315,7 @@ const Residents = () => {
                     id="fullname" 
                     placeholder="Juan Dela Cruz"
                     value={newResident.full_name}
-                    onChange={(e) => setNewResident({...newResident, full_name: e.target.value})}
+                    onChange={(e) => setNewResident(prev => ({...prev, full_name: e.target.value}))}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -326,12 +326,12 @@ const Residents = () => {
                       type="number" 
                       placeholder="25"
                       value={newResident.age}
-                      onChange={(e) => setNewResident({...newResident, age: e.target.value})}
+                      onChange={(e) => setNewResident(prev => ({...prev, age: e.target.value}))}
                     />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="gender">Gender</Label>
-                    <Select value={newResident.gender} onValueChange={(value) => setNewResident({...newResident, gender: value})}>
+                    <Select value={newResident.gender} onValueChange={(value) => setNewResident(prev => ({...prev, gender: value}))}>
                       <SelectTrigger id="gender">
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
@@ -359,13 +359,15 @@ const Residents = () => {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="special-status">Special Status</Label>
-                  <Select value={newResident.special_status} onValueChange={(value) => setNewResident({...newResident, special_status: value})}>
+                  <Select value={newResident.special_status} onValueChange={(value) => setNewResident(prev => ({...prev, special_status: value}))}>
                     <SelectTrigger id="special-status">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="Senior Citizen">Senior Citizen</SelectItem>
+                      {parseInt(newResident.age) >= 60 && (
+                        <SelectItem value="Senior Citizen">Senior Citizen</SelectItem>
+                      )}
                       <SelectItem value="PWD">PWD</SelectItem>
                     </SelectContent>
                   </Select>
@@ -488,7 +490,7 @@ const Residents = () => {
                 <Input 
                   id="edit-fullname" 
                   value={selectedResident.full_name}
-                  onChange={(e) => setSelectedResident({...selectedResident, full_name: e.target.value})}
+                  onChange={(e) => setSelectedResident(prev => prev ? {...prev, full_name: e.target.value} : prev)}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -498,14 +500,14 @@ const Residents = () => {
                     id="edit-age" 
                     type="number" 
                     value={selectedResident.age}
-                    onChange={(e) => setSelectedResident({...selectedResident, age: parseInt(e.target.value)})}
+                    onChange={(e) => setSelectedResident(prev => prev ? {...prev, age: parseInt(e.target.value)} : prev)}
                   />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-gender">Gender</Label>
                   <Select 
                     value={selectedResident.gender}
-                    onValueChange={(value) => setSelectedResident({...selectedResident, gender: value})}
+                    onValueChange={(value) => setSelectedResident(prev => prev ? {...prev, gender: value} : prev)}
                   >
                     <SelectTrigger id="edit-gender">
                       <SelectValue />
@@ -523,11 +525,11 @@ const Residents = () => {
                   value={selectedResident.household_id || "none"}
                   onValueChange={(value) => {
                     const household = households.find((h: any) => h.id === value);
-                    setSelectedResident({
-                      ...selectedResident, 
+                    setSelectedResident(prev => prev ? {
+                      ...prev, 
                       household_id: value === "none" ? null : value,
-                      purok: household ? (household.purok || household.street_address) : selectedResident.purok
-                    });
+                      purok: household ? (household.purok || household.street_address) : prev.purok
+                    } : prev);
                   }}
                 >
                   <SelectTrigger id="edit-household">
@@ -547,14 +549,16 @@ const Residents = () => {
                 <Label htmlFor="edit-special">Special Status</Label>
                 <Select 
                   value={selectedResident.special_status || "none"}
-                  onValueChange={(value) => setSelectedResident({...selectedResident, special_status: value === "none" ? null : value})}
+                  onValueChange={(value) => setSelectedResident(prev => prev ? {...prev, special_status: value === "none" ? null : value} : prev)}
                 >
                   <SelectTrigger id="edit-special">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    <SelectItem value="Senior Citizen">Senior Citizen</SelectItem>
+                    {selectedResident.age >= 60 && (
+                      <SelectItem value="Senior Citizen">Senior Citizen</SelectItem>
+                    )}
                     <SelectItem value="PWD">PWD</SelectItem>
                   </SelectContent>
                 </Select>
