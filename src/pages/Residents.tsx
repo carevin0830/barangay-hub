@@ -63,6 +63,21 @@ const Residents = () => {
     return "border border-muted-foreground text-muted-foreground bg-transparent hover:bg-muted/5";
   };
 
+  const cycleStatus = (currentStatus: string) => {
+    return currentStatus === "Active" ? "Inactive" : "Active";
+  };
+
+  const handleStatusClick = (resident: typeof initialResidents[0]) => {
+    const newStatus = cycleStatus(resident.status);
+    setResidents(residents.map(r => 
+      r.id === resident.id ? { ...r, status: newStatus } : r
+    ));
+    toast({
+      title: "Status updated",
+      description: `${resident.name}'s status changed to ${newStatus}.`,
+    });
+  };
+
   const handleEdit = (resident: typeof initialResidents[0]) => {
     setSelectedResident(resident);
     setIsEditDialogOpen(true);
@@ -227,7 +242,11 @@ const Residents = () => {
                 <TableCell>{resident.age}</TableCell>
                 <TableCell>{resident.houseNumber}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={getStatusBadgeStyle(resident.status)}>
+                  <Badge 
+                    variant="outline" 
+                    className={`${getStatusBadgeStyle(resident.status)} cursor-pointer`}
+                    onClick={() => handleStatusClick(resident)}
+                  >
                     {resident.status}
                   </Badge>
                 </TableCell>

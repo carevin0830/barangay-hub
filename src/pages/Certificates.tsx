@@ -143,6 +143,21 @@ const Certificates = () => {
     return "bg-muted text-muted-foreground hover:bg-muted/90";
   };
 
+  const cycleStatus = (currentStatus: string) => {
+    return currentStatus === "Active" ? "Expired" : "Active";
+  };
+
+  const handleStatusClick = (certificate: typeof initialCertificates[0]) => {
+    const newStatus = cycleStatus(certificate.status);
+    setCertificates(certificates.map(c => 
+      c.id === certificate.id ? { ...c, status: newStatus } : c
+    ));
+    toast({
+      title: "Status updated",
+      description: `Certificate ${certificate.certificateNo} status changed to ${newStatus}.`,
+    });
+  };
+
   const handleEdit = (certificate: typeof initialCertificates[0]) => {
     setSelectedCertificate(certificate);
     setIsEditDialogOpen(true);
@@ -291,7 +306,10 @@ const Certificates = () => {
                 <TableCell className="text-sm">{certificate.issuedDate}</TableCell>
                 <TableCell className="text-sm">{certificate.validUntil}</TableCell>
                 <TableCell>
-                  <Badge className={getStatusBadgeStyle(certificate.status)}>
+                  <Badge 
+                    className={`${getStatusBadgeStyle(certificate.status)} cursor-pointer`}
+                    onClick={() => handleStatusClick(certificate)}
+                  >
                     {certificate.status}
                   </Badge>
                 </TableCell>

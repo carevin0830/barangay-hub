@@ -79,6 +79,23 @@ const Activities = () => {
     return "bg-muted text-muted-foreground hover:bg-muted/90";
   };
 
+  const cycleStatus = (currentStatus: string) => {
+    const statuses = ["Upcoming", "Ongoing", "Completed", "Cancelled"];
+    const currentIndex = statuses.indexOf(currentStatus);
+    return statuses[(currentIndex + 1) % statuses.length];
+  };
+
+  const handleStatusClick = (activity: typeof initialActivities[0]) => {
+    const newStatus = cycleStatus(activity.status);
+    setActivities(activities.map(a => 
+      a.id === activity.id ? { ...a, status: newStatus } : a
+    ));
+    toast({
+      title: "Status updated",
+      description: `${activity.activity} status changed to ${newStatus}.`,
+    });
+  };
+
   const handleEdit = (activity: typeof initialActivities[0]) => {
     setSelectedActivity(activity);
     setIsEditDialogOpen(true);
@@ -270,7 +287,10 @@ const Activities = () => {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge className={getStatusBadgeStyle(activity.status)}>
+                  <Badge 
+                    className={`${getStatusBadgeStyle(activity.status)} cursor-pointer`}
+                    onClick={() => handleStatusClick(activity)}
+                  >
                     {activity.status}
                   </Badge>
                 </TableCell>

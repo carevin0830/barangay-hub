@@ -109,6 +109,23 @@ const Reports = () => {
     return "bg-muted text-muted-foreground hover:bg-muted/90";
   };
 
+  const cycleStatus = (currentStatus: string) => {
+    const statuses = ["Pending", "In Progress", "Closed"];
+    const currentIndex = statuses.indexOf(currentStatus);
+    return statuses[(currentIndex + 1) % statuses.length];
+  };
+
+  const handleStatusClick = (report: typeof initialReports[0]) => {
+    const newStatus = cycleStatus(report.status);
+    setReports(reports.map(r => 
+      r.id === report.id ? { ...r, status: newStatus } : r
+    ));
+    toast({
+      title: "Status updated",
+      description: `Report status changed to ${newStatus}.`,
+    });
+  };
+
   const handleEdit = (report: typeof initialReports[0]) => {
     setSelectedReport(report);
     setIsEditDialogOpen(true);
@@ -282,7 +299,10 @@ const Reports = () => {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge className={getStatusBadgeStyle(report.status)}>
+                  <Badge 
+                    className={`${getStatusBadgeStyle(report.status)} cursor-pointer`}
+                    onClick={() => handleStatusClick(report)}
+                  >
                     {report.status}
                   </Badge>
                 </TableCell>
