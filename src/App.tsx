@@ -10,6 +10,7 @@ import Residents from "./pages/Residents";
 import Households from "./pages/Households";
 import Officials from "./pages/Officials";
 import Ordinances from "./pages/Ordinances";
+import Activities from "./pages/Activities";
 import Placeholder from "./pages/Placeholder";
 import NotFound from "./pages/NotFound";
 
@@ -28,16 +29,7 @@ const App = () => (
             <Route path="/households" element={<Households />} />
             <Route path="/officials" element={<Officials />} />
             <Route path="/ordinances" element={<Ordinances />} />
-            <Route 
-              path="/activities" 
-              element={
-                <Placeholder 
-                  title="Activities & Programs" 
-                  description="Post events, track attendance, and manage budgets. Coming soon."
-                  icon={Calendar}
-                />
-              } 
-            />
+            <Route path="/activities" element={<Activities />} />
             <Route 
               path="/reports" 
               element={
