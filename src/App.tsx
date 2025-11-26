@@ -12,6 +12,7 @@ import Officials from "./pages/Officials";
 import Ordinances from "./pages/Ordinances";
 import Activities from "./pages/Activities";
 import Reports from "./pages/Reports";
+import Certificates from "./pages/Certificates";
 import Placeholder from "./pages/Placeholder";
 import NotFound from "./pages/NotFound";
 
@@ -32,16 +33,7 @@ const App = () => (
             <Route path="/ordinances" element={<Ordinances />} />
             <Route path="/activities" element={<Activities />} />
             <Route path="/reports" element={<Reports />} />
-            <Route 
-              path="/certificates" 
-              element={
-                <Placeholder 
-                  title="Certificates Management" 
-                  description="Generate and manage barangay certificates. Coming soon."
-                  icon={Award}
-                />
-              } 
-            />
+            <Route path="/certificates" element={<Certificates />} />
             <Route 
               path="/documents" 
               element={
