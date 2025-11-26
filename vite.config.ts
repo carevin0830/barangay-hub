@@ -16,6 +16,6 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    include: ['maplibre-gl'],
+    include: ['react', 'react-dom', 'maplibre-gl'],
   },
 }));
