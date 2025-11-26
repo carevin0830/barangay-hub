@@ -14,6 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
+      certificates: {
+        Row: {
+          amount_paid: number | null
+          business_type: string | null
+          certificate_no: string
+          certificate_type: string
+          control_number: string | null
+          created_at: string
+          id: string
+          issued_date: string
+          purpose: string
+          resident_age: number | null
+          resident_id: string | null
+          resident_name: string
+          status: string
+          updated_at: string
+          valid_until: string | null
+          verified_by_kagawad1: string | null
+          verified_by_kagawad2: string | null
+        }
+        Insert: {
+          amount_paid?: number | null
+          business_type?: string | null
+          certificate_no: string
+          certificate_type: string
+          control_number?: string | null
+          created_at?: string
+          id?: string
+          issued_date?: string
+          purpose: string
+          resident_age?: number | null
+          resident_id?: string | null
+          resident_name: string
+          status?: string
+          updated_at?: string
+          valid_until?: string | null
+          verified_by_kagawad1?: string | null
+          verified_by_kagawad2?: string | null
+        }
+        Update: {
+          amount_paid?: number | null
+          business_type?: string | null
+          certificate_no?: string
+          certificate_type?: string
+          control_number?: string | null
+          created_at?: string
+          id?: string
+          issued_date?: string
+          purpose?: string
+          resident_age?: number | null
+          resident_id?: string | null
+          resident_name?: string
+          status?: string
+          updated_at?: string
+          valid_until?: string | null
+          verified_by_kagawad1?: string | null
+          verified_by_kagawad2?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       households: {
         Row: {
           created_at: string | null
