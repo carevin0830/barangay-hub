@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import barangayLogo from '@/assets/barangay-logo.png';
+import hallBackground from '@/assets/hall-background.jpg';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -41,8 +42,12 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
-      <Card className="w-full max-w-md">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center relative"
+      style={{ backgroundImage: `url(${hallBackground})` }}
+    >
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
+      <Card className="w-full max-w-md relative z-10 shadow-2xl">
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
             <img src={barangayLogo} alt="Barangay Logo" className="h-20 w-20 object-contain" />
