@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Plus, Edit2, Trash2 } from "lucide-react";
+import { Plus, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -40,48 +40,153 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
-const initialReports = [
-  {
-    id: 1,
-    title: "Barangay Anti-Drugs Abuse Council (BADAC) FUNCTIONALITY",
-    type: "Concern",
-    reportedBy: "CATHERINE A. DUMLAO",
-    location: "POBLACION",
-    priority: "Medium",
-    status: "Pending",
-    date: "11/26/2025",
-  },
-  {
-    id: 2,
-    title: "test",
-    type: "Concern",
-    reportedBy: "test",
-    location: "test",
-    priority: "Low",
-    status: "Closed",
-    date: "10/6/2025",
-  },
-  {
-    id: 3,
-    title: "test",
-    type: "Complaint",
-    reportedBy: "test",
-    location: "test",
-    priority: "High",
-    status: "Closed",
-    date: "10/2/2025",
-  },
-];
+type Report = {
+  id: string;
+  title: string;
+  type: string;
+  description: string;
+  reported_by: string;
+  location: string;
+  priority: string;
+  status: string;
+  date: string;
+  created_at: string;
+  updated_at: string;
+};
 
 const Reports = () => {
   const { toast } = useToast();
-  const [reports, setReports] = useState(initialReports);
-  const [searchQuery, setSearchQuery] = useState("");
+  const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedReport, setSelectedReport] = useState<typeof initialReports[0] | null>(null);
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    title: "",
+    type: "",
+    description: "",
+    reported_by: "",
+    location: "",
+    priority: "",
+    status: "Pending",
+  });
+
+  // Fetch reports
+  const { data: reports = [] } = useQuery({
+    queryKey: ['reports'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reports')
+        .select('*')
+        .order('date', { ascending: false });
+      if (error) throw error;
+      return data as Report[];
+    },
+  });
+
+  // Add report mutation
+  const addReportMutation = useMutation({
+    mutationFn: async (newReport: Omit<Report, 'id' | 'created_at' | 'updated_at'>) => {
+      const { data, error } = await supabase
+        .from('reports')
+        .insert([newReport])
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      toast({
+        title: "Report created",
+        description: "The report has been submitted successfully.",
+      });
+      setIsAddDialogOpen(false);
+      resetForm();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to create report: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update report mutation
+  const updateReportMutation = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Report> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('reports')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      toast({
+        title: "Report updated",
+        description: "The report has been updated successfully.",
+      });
+      setIsEditDialogOpen(false);
+      setSelectedReport(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update report: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete report mutation
+  const deleteReportMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('reports')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      toast({
+        title: "Report deleted",
+        description: "The report has been removed successfully.",
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedReport(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete report: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      type: "",
+      description: "",
+      reported_by: "",
+      location: "",
+      priority: "",
+      status: "Pending",
+    });
+  };
 
   const getPriorityBadgeStyle = (priority: string) => {
     if (priority === "High") {
@@ -115,50 +220,87 @@ const Reports = () => {
     return statuses[(currentIndex + 1) % statuses.length];
   };
 
-  const handleStatusClick = (report: typeof initialReports[0]) => {
+  const handleStatusClick = (report: Report) => {
     const newStatus = cycleStatus(report.status);
-    setReports(reports.map(r => 
-      r.id === report.id ? { ...r, status: newStatus } : r
-    ));
-    toast({
-      title: "Status updated",
-      description: `Report status changed to ${newStatus}.`,
-    });
+    updateReportMutation.mutate({ id: report.id, status: newStatus });
   };
 
-  const handleEdit = (report: typeof initialReports[0]) => {
+  const handleEdit = (report: Report) => {
     setSelectedReport(report);
+    setFormData({
+      title: report.title,
+      type: report.type,
+      description: report.description,
+      reported_by: report.reported_by,
+      location: report.location,
+      priority: report.priority,
+      status: report.status,
+    });
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (report: typeof initialReports[0]) => {
+  const handleDelete = (report: Report) => {
     setSelectedReport(report);
     setIsDeleteDialogOpen(true);
   };
 
   const confirmDelete = () => {
     if (selectedReport) {
-      setReports(reports.filter(r => r.id !== selectedReport.id));
-      toast({
-        title: "Report deleted",
-        description: `${selectedReport.title} has been removed.`,
-      });
-      setIsDeleteDialogOpen(false);
-      setSelectedReport(null);
+      deleteReportMutation.mutate(selectedReport.id);
     }
   };
 
-  const saveEdit = () => {
-    if (selectedReport) {
-      setReports(reports.map(r => 
-        r.id === selectedReport.id ? selectedReport : r
-      ));
+  const handleAddSubmit = () => {
+    if (!formData.title || !formData.type || !formData.description || !formData.reported_by || !formData.location || !formData.priority) {
       toast({
-        title: "Report updated",
-        description: `${selectedReport.title} has been updated.`,
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
       });
-      setIsEditDialogOpen(false);
-      setSelectedReport(null);
+      return;
+    }
+
+    addReportMutation.mutate({
+      title: formData.title,
+      type: formData.type,
+      description: formData.description,
+      reported_by: formData.reported_by,
+      location: formData.location,
+      priority: formData.priority,
+      status: formData.status,
+      date: format(new Date(), "yyyy-MM-dd"),
+    });
+  };
+
+  const handleEditSubmit = () => {
+    if (!selectedReport) return;
+    
+    if (!formData.title || !formData.type || !formData.description || !formData.reported_by || !formData.location || !formData.priority) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateReportMutation.mutate({
+      id: selectedReport.id,
+      title: formData.title,
+      type: formData.type,
+      description: formData.description,
+      reported_by: formData.reported_by,
+      location: formData.location,
+      priority: formData.priority,
+      status: formData.status,
+    });
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "MM/dd/yyyy");
+    } catch {
+      return dateString;
     }
   };
 
@@ -193,19 +335,24 @@ const Reports = () => {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="title">Title</Label>
-                <Input id="title" placeholder="Brief description of the incident" />
+                <Input 
+                  id="title" 
+                  placeholder="Brief description of the incident"
+                  value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="type">Type</Label>
-                <Select>
+                <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
                   <SelectTrigger id="type">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="concern">Concern</SelectItem>
-                    <SelectItem value="complaint">Complaint</SelectItem>
-                    <SelectItem value="incident">Incident</SelectItem>
-                    <SelectItem value="maintenance">Maintenance Request</SelectItem>
+                    <SelectItem value="Concern">Concern</SelectItem>
+                    <SelectItem value="Complaint">Complaint</SelectItem>
+                    <SelectItem value="Incident">Incident</SelectItem>
+                    <SelectItem value="Maintenance Request">Maintenance Request</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -215,50 +362,68 @@ const Reports = () => {
                   id="description" 
                   placeholder="Detailed description of the report..."
                   rows={4}
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
                 />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="reportedBy">Reported By</Label>
-                <Input id="reportedBy" placeholder="Name of reporter" />
+                <Input 
+                  id="reportedBy" 
+                  placeholder="Name of reporter"
+                  value={formData.reported_by}
+                  onChange={(e) => setFormData({...formData, reported_by: e.target.value})}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="location">Location</Label>
-                <Input id="location" placeholder="Location of incident" />
+                <Input 
+                  id="location" 
+                  placeholder="Location of incident"
+                  value={formData.location}
+                  onChange={(e) => setFormData({...formData, location: e.target.value})}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="priority">Priority</Label>
-                  <Select>
+                  <Select value={formData.priority} onValueChange={(value) => setFormData({...formData, priority: value})}>
                     <SelectTrigger id="priority">
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="Low">Low</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="High">High</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="status">Status</Label>
-                  <Select>
+                  <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
                     <SelectTrigger id="status">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="in-progress">In Progress</SelectItem>
-                      <SelectItem value="closed">Closed</SelectItem>
+                      <SelectItem value="Pending">Pending</SelectItem>
+                      <SelectItem value="In Progress">In Progress</SelectItem>
+                      <SelectItem value="Closed">Closed</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              <Button variant="outline" onClick={() => { setIsAddDialogOpen(false); resetForm(); }}>
                 Cancel
               </Button>
-              <Button className="bg-primary hover:bg-primary/90">Save Report</Button>
+              <Button 
+                className="bg-primary hover:bg-primary/90" 
+                onClick={handleAddSubmit}
+                disabled={addReportMutation.isPending}
+              >
+                {addReportMutation.isPending ? "Saving..." : "Save Report"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -283,52 +448,60 @@ const Reports = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {reports.map((report) => (
-              <TableRow key={report.id}>
-                <TableCell className="max-w-xs">
-                  <div className="font-medium">{report.title}</div>
-                </TableCell>
-                <TableCell>
-                  <span className="text-secondary">{report.type}</span>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{report.reportedBy}</TableCell>
-                <TableCell className="text-muted-foreground">{report.location}</TableCell>
-                <TableCell>
-                  <Badge className={getPriorityBadgeStyle(report.priority)}>
-                    {report.priority}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge 
-                    className={`${getStatusBadgeStyle(report.status)} cursor-pointer`}
-                    onClick={() => handleStatusClick(report)}
-                  >
-                    {report.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-sm">{report.date}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8"
-                      onClick={() => handleEdit(report)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(report)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+            {reports.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  No reports found. Create your first report to get started.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              reports.map((report) => (
+                <TableRow key={report.id}>
+                  <TableCell className="max-w-xs">
+                    <div className="font-medium">{report.title}</div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-secondary">{report.type}</span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{report.reported_by}</TableCell>
+                  <TableCell className="text-muted-foreground">{report.location}</TableCell>
+                  <TableCell>
+                    <Badge className={getPriorityBadgeStyle(report.priority)}>
+                      {report.priority}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge 
+                      className={`${getStatusBadgeStyle(report.status)} cursor-pointer`}
+                      onClick={() => handleStatusClick(report)}
+                    >
+                      {report.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">{formatDate(report.date)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => handleEdit(report)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(report)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
@@ -342,48 +515,93 @@ const Reports = () => {
               Update the report information.
             </DialogDescription>
           </DialogHeader>
-          {selectedReport && (
-            <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-title">Title</Label>
+              <Input 
+                id="edit-title" 
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-type">Type</Label>
+              <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
+                <SelectTrigger id="edit-type">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Concern">Concern</SelectItem>
+                  <SelectItem value="Complaint">Complaint</SelectItem>
+                  <SelectItem value="Incident">Incident</SelectItem>
+                  <SelectItem value="Maintenance Request">Maintenance Request</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea 
+                id="edit-description" 
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                rows={4}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-reportedBy">Reported By</Label>
+              <Input 
+                id="edit-reportedBy" 
+                value={formData.reported_by}
+                onChange={(e) => setFormData({...formData, reported_by: e.target.value})}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-location">Location</Label>
+              <Input 
+                id="edit-location" 
+                value={formData.location}
+                onChange={(e) => setFormData({...formData, location: e.target.value})}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="edit-title">Title</Label>
-                <Input 
-                  id="edit-title" 
-                  value={selectedReport.title}
-                  onChange={(e) => setSelectedReport({...selectedReport, title: e.target.value})}
-                />
+                <Label htmlFor="edit-priority">Priority</Label>
+                <Select value={formData.priority} onValueChange={(value) => setFormData({...formData, priority: value})}>
+                  <SelectTrigger id="edit-priority">
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Low">Low</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="High">High</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-type">Type</Label>
-                <Input 
-                  id="edit-type" 
-                  value={selectedReport.type}
-                  onChange={(e) => setSelectedReport({...selectedReport, type: e.target.value})}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-reportedBy">Reported By</Label>
-                <Input 
-                  id="edit-reportedBy" 
-                  value={selectedReport.reportedBy}
-                  onChange={(e) => setSelectedReport({...selectedReport, reportedBy: e.target.value})}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-location">Location</Label>
-                <Input 
-                  id="edit-location" 
-                  value={selectedReport.location}
-                  onChange={(e) => setSelectedReport({...selectedReport, location: e.target.value})}
-                />
+                <Label htmlFor="edit-status">Status</Label>
+                <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
+                  <SelectTrigger id="edit-status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="Closed">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          )}
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button variant="outline" onClick={() => { setIsEditDialogOpen(false); setSelectedReport(null); }}>
               Cancel
             </Button>
-            <Button className="bg-primary hover:bg-primary/90" onClick={saveEdit}>
-              Save Changes
+            <Button 
+              className="bg-primary hover:bg-primary/90" 
+              onClick={handleEditSubmit}
+              disabled={updateReportMutation.isPending}
+            >
+              {updateReportMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -400,8 +618,12 @@ const Reports = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
-              Delete
+            <AlertDialogAction 
+              onClick={confirmDelete} 
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={deleteReportMutation.isPending}
+            >
+              {deleteReportMutation.isPending ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
