@@ -144,72 +144,40 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* Charts and Notifications */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Population Chart */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Population Distribution by Age Group</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={populationData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="ageGroup" 
-                    className="text-sm"
-                    stroke="hsl(var(--muted-foreground))"
-                  />
-                  <YAxis 
-                    className="text-sm"
-                    stroke="hsl(var(--muted-foreground))"
-                  />
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "var(--radius)",
-                    }}
-                  />
-                  <Bar 
-                    dataKey="count" 
-                    fill="hsl(var(--secondary))" 
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Notifications Panel */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Notifications</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="border-l-4 border-secondary pl-4 py-2">
-                <p className="font-medium text-sm">New Birth Registration</p>
-                <p className="text-xs text-muted-foreground">Baby Cruz - Zone 3</p>
-                <p className="text-xs text-muted-foreground mt-1">2 hours ago</p>
-              </div>
-              <div className="border-l-4 border-accent pl-4 py-2">
-                <p className="font-medium text-sm">Upcoming Meeting</p>
-                <p className="text-xs text-muted-foreground">Barangay Council Meeting</p>
-                <p className="text-xs text-muted-foreground mt-1">Tomorrow, 2:00 PM</p>
-              </div>
-              <div className="border-l-4 border-primary pl-4 py-2">
-                <p className="font-medium text-sm">Report Submitted</p>
-                <p className="text-xs text-muted-foreground">Street light repair - Zone 5</p>
-                <p className="text-xs text-muted-foreground mt-1">5 hours ago</p>
-              </div>
-              <div className="border-l-4 border-muted pl-4 py-2">
-                <p className="font-medium text-sm">Activity Completed</p>
-                <p className="text-xs text-muted-foreground">Clean-up Drive - Success</p>
-                <p className="text-xs text-muted-foreground mt-1">Yesterday</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Population Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Population Distribution by Age Group</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={populationData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="ageGroup" 
+                  className="text-sm"
+                  stroke="hsl(var(--muted-foreground))"
+                />
+                <YAxis 
+                  className="text-sm"
+                  stroke="hsl(var(--muted-foreground))"
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "var(--radius)",
+                  }}
+                />
+                <Bar 
+                  dataKey="count" 
+                  fill="hsl(var(--secondary))" 
+                  radius={[8, 8, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
