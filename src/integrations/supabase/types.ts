@@ -14,7 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      households: {
+        Row: {
+          created_at: string | null
+          has_electricity: boolean | null
+          has_water: boolean | null
+          house_number: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          purok: string | null
+          street_address: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          has_electricity?: boolean | null
+          has_water?: boolean | null
+          house_number: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          purok?: string | null
+          street_address?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          has_electricity?: boolean | null
+          has_water?: boolean | null
+          house_number?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          purok?: string | null
+          street_address?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
