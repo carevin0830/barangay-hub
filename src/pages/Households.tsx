@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Search, Home, MapPin, Edit2, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import InteractiveMap from "@/components/InteractiveMap";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useHouseholds, type Household } from "@/hooks/useHouseholds";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -50,6 +52,30 @@ const Households = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isViewLocationOpen, setIsViewLocationOpen] = useState(false);
   const [selectedHousehold, setSelectedHousehold] = useState<Household | null>(null);
+  
+  // Fetch residents to count per household
+  const { data: residents = [] } = useQuery({
+    queryKey: ['residents'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('residents')
+        .select('household_id')
+        .eq('status', 'Active');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Calculate resident count per household
+  const residentCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    residents.forEach((resident) => {
+      if (resident.household_id) {
+        counts[resident.household_id] = (counts[resident.household_id] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [residents]);
   
   // Form state for add dialog
   const [newHousehold, setNewHousehold] = useState({
@@ -272,7 +298,7 @@ const Households = () => {
                   <TableCell>
                     <div className="flex items-center gap-1 text-muted-foreground">
                       <Users className="h-4 w-4" />
-                      <span>0</span>
+                      <span>{residentCounts[household.id] || 0}</span>
                     </div>
                   </TableCell>
                   <TableCell>
