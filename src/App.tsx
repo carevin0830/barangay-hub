@@ -3,7 +3,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { Building2, FileText, Calendar, BarChart3, Settings } from "lucide-react";
+import Layout from "./components/Layout";
+import Dashboard from "./pages/Dashboard";
+import Residents from "./pages/Residents";
+import Placeholder from "./pages/Placeholder";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -14,11 +18,64 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/residents" element={<Residents />} />
+            <Route 
+              path="/households" 
+              element={
+                <Placeholder 
+                  title="Households Module" 
+                  description="Track households by zone, manage members, and monitor utilities. Coming soon."
+                  icon={Building2}
+                />
+              } 
+            />
+            <Route 
+              path="/officials" 
+              element={
+                <Placeholder 
+                  title="Barangay Officials" 
+                  description="Manage official profiles, terms, and council structure. Coming soon."
+                  icon={FileText}
+                />
+              } 
+            />
+            <Route 
+              path="/activities" 
+              element={
+                <Placeholder 
+                  title="Activities & Programs" 
+                  description="Post events, track attendance, and manage budgets. Coming soon."
+                  icon={Calendar}
+                />
+              } 
+            />
+            <Route 
+              path="/reports" 
+              element={
+                <Placeholder 
+                  title="Reports Management" 
+                  description="Submit concerns, track tickets, and generate reports. Coming soon."
+                  icon={BarChart3}
+                />
+              } 
+            />
+            <Route 
+              path="/settings" 
+              element={
+                <Placeholder 
+                  title="System Settings" 
+                  description="Customize barangay info, manage users, and configure system. Coming soon."
+                  icon={Settings}
+                />
+              } 
+            />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Layout>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
