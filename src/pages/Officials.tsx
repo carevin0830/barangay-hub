@@ -172,8 +172,6 @@ const Officials = () => {
                     <SelectItem value="captain">Barangay Captain</SelectItem>
                     <SelectItem value="secretary">Secretary</SelectItem>
                     <SelectItem value="treasurer">Treasurer</SelectItem>
-                    <SelectItem value="councilor">Councilor</SelectItem>
-                    <SelectItem value="sk-chairman">SK Chairman</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
