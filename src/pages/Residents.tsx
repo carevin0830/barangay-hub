@@ -92,6 +92,19 @@ const Residents = () => {
     }
   });
 
+  const { data: households = [] } = useQuery({
+    queryKey: ['households'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('households')
+        .select('*')
+        .order('house_number');
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
   const addMutation = useMutation({
     mutationFn: async (resident: any) => {
       const { data, error } = await supabase
@@ -138,7 +151,8 @@ const Residents = () => {
           gender: resident.gender,
           purok: resident.purok,
           status: resident.status,
-          special_status: resident.special_status
+          special_status: resident.special_status,
+          household_id: resident.household_id
         })
         .eq('id', resident.id)
         .select()
@@ -216,8 +230,19 @@ const Residents = () => {
     }
   };
 
+  const handleHouseholdChange = (householdId: string) => {
+    const household = households.find((h: any) => h.id === householdId);
+    if (household) {
+      setNewResident({
+        ...newResident,
+        household_id: householdId,
+        purok: household.purok || household.street_address || ""
+      });
+    }
+  };
+
   const handleAddResident = () => {
-    if (!newResident.full_name || !newResident.age || !newResident.gender || !newResident.purok) {
+    if (!newResident.full_name || !newResident.age || !newResident.gender || !newResident.household_id) {
       toast({
         title: "Missing fields",
         description: "Please fill in all required fields.",
@@ -232,7 +257,7 @@ const Residents = () => {
       gender: newResident.gender,
       purok: newResident.purok,
       special_status: newResident.special_status === "none" ? null : newResident.special_status || null,
-      household_id: newResident.household_id || null,
+      household_id: newResident.household_id,
       status: "Active"
     });
   };
@@ -296,13 +321,19 @@ const Residents = () => {
                   </div>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="zone">Zone/Purok</Label>
-                  <Input 
-                    id="zone" 
-                    placeholder="e.g., Zone 1"
-                    value={newResident.purok}
-                    onChange={(e) => setNewResident({...newResident, purok: e.target.value})}
-                  />
+                  <Label htmlFor="household">Household</Label>
+                  <Select value={newResident.household_id} onValueChange={handleHouseholdChange}>
+                    <SelectTrigger id="household">
+                      <SelectValue placeholder="Select household" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {households.map((household: any) => (
+                        <SelectItem key={household.id} value={household.id}>
+                          House #{household.house_number} - {household.purok || household.street_address}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="special-status">Special Status</Label>
@@ -456,13 +487,30 @@ const Residents = () => {
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-zone">Zone/Purok</Label>
-                <Input 
-                  id="edit-zone" 
-                  value={selectedResident.purok}
-                  onChange={(e) => setSelectedResident({...selectedResident, purok: e.target.value})}
-                  placeholder="e.g., Zone 1"
-                />
+                <Label htmlFor="edit-household">Household</Label>
+                <Select 
+                  value={selectedResident.household_id || "none"}
+                  onValueChange={(value) => {
+                    const household = households.find((h: any) => h.id === value);
+                    setSelectedResident({
+                      ...selectedResident, 
+                      household_id: value === "none" ? null : value,
+                      purok: household ? (household.purok || household.street_address) : selectedResident.purok
+                    });
+                  }}
+                >
+                  <SelectTrigger id="edit-household">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {households.map((household: any) => (
+                      <SelectItem key={household.id} value={household.id}>
+                        House #{household.house_number} - {household.purok || household.street_address}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-special">Special Status</Label>
