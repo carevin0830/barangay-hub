@@ -11,6 +11,7 @@ import Households from "./pages/Households";
 import Officials from "./pages/Officials";
 import Ordinances from "./pages/Ordinances";
 import Activities from "./pages/Activities";
+import Reports from "./pages/Reports";
 import Placeholder from "./pages/Placeholder";
 import NotFound from "./pages/NotFound";
 
@@ -30,16 +31,7 @@ const App = () => (
             <Route path="/officials" element={<Officials />} />
             <Route path="/ordinances" element={<Ordinances />} />
             <Route path="/activities" element={<Activities />} />
-            <Route 
-              path="/reports" 
-              element={
-                <Placeholder 
-                  title="Reports Management" 
-                  description="Submit concerns, track tickets, and generate reports. Coming soon."
-                  icon={BarChart3}
-                />
-              } 
-            />
+            <Route path="/reports" element={<Reports />} />
             <Route 
               path="/certificates" 
               element={
