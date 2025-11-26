@@ -20,6 +20,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -29,8 +39,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
-const mockReports = [
+const initialReports = [
   {
     id: 1,
     title: "Barangay Anti-Drugs Abuse Council (BADAC) FUNCTIONALITY",
@@ -64,8 +75,13 @@ const mockReports = [
 ];
 
 const Reports = () => {
+  const { toast } = useToast();
+  const [reports, setReports] = useState(initialReports);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedReport, setSelectedReport] = useState<typeof initialReports[0] | null>(null);
 
   const getPriorityBadgeStyle = (priority: string) => {
     if (priority === "High") {
@@ -91,6 +107,42 @@ const Reports = () => {
       return "bg-primary text-primary-foreground hover:bg-primary/90";
     }
     return "bg-muted text-muted-foreground hover:bg-muted/90";
+  };
+
+  const handleEdit = (report: typeof initialReports[0]) => {
+    setSelectedReport(report);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (report: typeof initialReports[0]) => {
+    setSelectedReport(report);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedReport) {
+      setReports(reports.filter(r => r.id !== selectedReport.id));
+      toast({
+        title: "Report deleted",
+        description: `${selectedReport.title} has been removed.`,
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedReport(null);
+    }
+  };
+
+  const saveEdit = () => {
+    if (selectedReport) {
+      setReports(reports.map(r => 
+        r.id === selectedReport.id ? selectedReport : r
+      ));
+      toast({
+        title: "Report updated",
+        description: `${selectedReport.title} has been updated.`,
+      });
+      setIsEditDialogOpen(false);
+      setSelectedReport(null);
+    }
   };
 
   return (
@@ -214,7 +266,7 @@ const Reports = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockReports.map((report) => (
+            {reports.map((report) => (
               <TableRow key={report.id}>
                 <TableCell className="max-w-xs">
                   <div className="font-medium">{report.title}</div>
@@ -237,10 +289,20 @@ const Reports = () => {
                 <TableCell className="text-sm">{report.date}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleEdit(report)}
+                    >
                       <Edit2 className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(report)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -250,6 +312,80 @@ const Reports = () => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Report</DialogTitle>
+            <DialogDescription>
+              Update the report information.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedReport && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-title">Title</Label>
+                <Input 
+                  id="edit-title" 
+                  value={selectedReport.title}
+                  onChange={(e) => setSelectedReport({...selectedReport, title: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-type">Type</Label>
+                <Input 
+                  id="edit-type" 
+                  value={selectedReport.type}
+                  onChange={(e) => setSelectedReport({...selectedReport, type: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-reportedBy">Reported By</Label>
+                <Input 
+                  id="edit-reportedBy" 
+                  value={selectedReport.reportedBy}
+                  onChange={(e) => setSelectedReport({...selectedReport, reportedBy: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-location">Location</Label>
+                <Input 
+                  id="edit-location" 
+                  value={selectedReport.location}
+                  onChange={(e) => setSelectedReport({...selectedReport, location: e.target.value})}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-primary hover:bg-primary/90" onClick={saveEdit}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Report</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this report? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
