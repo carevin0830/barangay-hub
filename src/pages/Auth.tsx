@@ -9,32 +9,21 @@ import barangayLogo from '@/assets/barangay-logo.png';
 import hallBackground from '@/assets/hall-background.jpg';
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (isLogin) {
-        const { error } = await signIn(email, password);
-        if (error) {
-          toast.error(error.message);
-        } else {
-          toast.success('Signed in successfully!');
-        }
+      const { error } = await signIn(email, password);
+      if (error) {
+        toast.error(error.message);
       } else {
-        const { error } = await signUp(email, password, fullName);
-        if (error) {
-          toast.error(error.message);
-        } else {
-          toast.success('Account created! Please check your email to verify.');
-        }
+        toast.success('Signed in successfully!');
       }
     } finally {
       setLoading(false);
@@ -53,27 +42,14 @@ const Auth = () => {
             <img src={barangayLogo} alt="Barangay Logo" className="h-20 w-20 object-contain" />
           </div>
           <div className="text-center">
-            <CardTitle className="text-2xl">{isLogin ? 'Admin Login' : 'Create Account'}</CardTitle>
+            <CardTitle className="text-2xl">Admin Login</CardTitle>
             <CardDescription>
-              {isLogin ? 'Sign in to access the barangay management system' : 'Register a new admin account'}
+              Sign in to access the barangay management system
             </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Juan Dela Cruz"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required={!isLogin}
-                />
-              </div>
-            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -97,18 +73,9 @@ const Auth = () => {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Loading...' : isLogin ? 'Sign In' : 'Sign Up'}
+              {loading ? 'Loading...' : 'Sign In'}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-primary hover:underline"
-            >
-              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-            </button>
-          </div>
         </CardContent>
       </Card>
     </div>
