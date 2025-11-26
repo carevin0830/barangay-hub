@@ -10,8 +10,8 @@ interface InteractiveMapProps {
 }
 
 const InteractiveMap = ({ 
-  latitude = 14.5995, 
-  longitude = 120.9842,
+  latitude = 17.3619, 
+  longitude = 120.7278,
   onLocationChange,
   className 
 }: InteractiveMapProps) => {
