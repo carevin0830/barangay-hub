@@ -1,4 +1,4 @@
-import { Home, Users, Building2, FileText, Calendar, BarChart3, Settings, Award, FolderOpen, LogOut } from "lucide-react";
+import { Home, Users, Building2, FileText, Calendar, BarChart3, Settings, Award, LogOut } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
 
@@ -11,7 +11,6 @@ const navigation = [
   { name: "Activities", href: "/activities", icon: Calendar },
   { name: "Reports", href: "/reports", icon: BarChart3 },
   { name: "Certificates", href: "/certificates", icon: Award },
-  { name: "Documents", href: "/documents", icon: FolderOpen },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
