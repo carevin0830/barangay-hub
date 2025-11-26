@@ -2,7 +2,10 @@ import { useState } from "react";
 import { Search, Home, MapPin, Edit2, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import HouseholdsMap from "@/components/HouseholdsMap";
+import InteractiveMap from "@/components/InteractiveMap";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { useHouseholds, type Household } from "@/hooks/useHouseholds";
 import {
   Table,
   TableBody,
@@ -38,58 +41,75 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-
-const initialHouseholds = [
-  { id: 1, houseNumber: "103", purok: "Longlongboy", address: "Villamor Street", residents: 2, utilities: "No utilities" },
-  { id: 2, houseNumber: "105", purok: "bisil", address: "bravo street", residents: 1, utilities: "No utilities" },
-  { id: 3, houseNumber: "106", purok: "ZONE 3", address: "LUMCANG STREET", residents: 1, utilities: "No utilities" },
-];
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Households = () => {
-  const { toast } = useToast();
-  const [households, setHouseholds] = useState(initialHouseholds);
+  const { households, loading, addHousehold, updateHousehold, deleteHousehold } = useHouseholds();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedHousehold, setSelectedHousehold] = useState<typeof initialHouseholds[0] | null>(null);
+  const [selectedHousehold, setSelectedHousehold] = useState<Household | null>(null);
+  
+  // Form state for add dialog
+  const [newHousehold, setNewHousehold] = useState({
+    house_number: '',
+    purok: '',
+    street_address: '',
+    latitude: 14.5995,
+    longitude: 120.9842,
+    has_electricity: false,
+    has_water: false,
+  });
 
-  const handleEdit = (household: typeof initialHouseholds[0]) => {
+  const handleEdit = (household: Household) => {
     setSelectedHousehold(household);
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (household: typeof initialHouseholds[0]) => {
+  const handleDelete = (household: Household) => {
     setSelectedHousehold(household);
     setIsDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (selectedHousehold) {
-      setHouseholds(households.filter(h => h.id !== selectedHousehold.id));
-      toast({
-        title: "Household deleted",
-        description: `House ${selectedHousehold.houseNumber} has been removed.`,
-      });
+      await deleteHousehold(selectedHousehold.id);
       setIsDeleteDialogOpen(false);
       setSelectedHousehold(null);
     }
   };
 
-  const saveEdit = () => {
-    if (selectedHousehold) {
-      setHouseholds(households.map(h => 
-        h.id === selectedHousehold.id ? selectedHousehold : h
-      ));
-      toast({
-        title: "Household updated",
-        description: `House ${selectedHousehold.houseNumber} has been updated.`,
+  const handleAddHousehold = async () => {
+    try {
+      await addHousehold(newHousehold);
+      setIsAddDialogOpen(false);
+      setNewHousehold({
+        house_number: '',
+        purok: '',
+        street_address: '',
+        latitude: 14.5995,
+        longitude: 120.9842,
+        has_electricity: false,
+        has_water: false,
       });
+    } catch (error) {
+      // Error handled in hook
+    }
+  };
+
+  const saveEdit = async () => {
+    if (selectedHousehold) {
+      await updateHousehold(selectedHousehold.id, selectedHousehold);
       setIsEditDialogOpen(false);
       setSelectedHousehold(null);
     }
   };
+
+  const filteredHouseholds = households.filter(h => 
+    h.house_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    h.purok?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="p-6 md:p-8">
@@ -128,41 +148,75 @@ const Households = () => {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="houseNumber">House Number</Label>
-                <Input id="houseNumber" placeholder="103" />
+                <Label htmlFor="houseNumber">House Number *</Label>
+                <Input 
+                  id="houseNumber" 
+                  placeholder="e.g., 101, 102A"
+                  value={newHousehold.house_number}
+                  onChange={(e) => setNewHousehold({...newHousehold, house_number: e.target.value})}
+                />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="purok">Purok/Zone</Label>
-                <Input id="purok" placeholder="e.g., Zone 1, Longlongboy" />
+                <Label htmlFor="purok">Purok</Label>
+                <Input 
+                  id="purok" 
+                  placeholder="e.g., Purok 1"
+                  value={newHousehold.purok}
+                  onChange={(e) => setNewHousehold({...newHousehold, purok: e.target.value})}
+                />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="address">Address</Label>
-                <Input id="address" placeholder="Villamor Street" />
+                <Label htmlFor="address">Street Address</Label>
+                <Input 
+                  id="address" 
+                  placeholder="e.g., Sampaguita Street"
+                  value={newHousehold.street_address}
+                  onChange={(e) => setNewHousehold({...newHousehold, street_address: e.target.value})}
+                />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="headOfHousehold">Head of Household</Label>
-                <Input id="headOfHousehold" placeholder="Juan Dela Cruz" />
+                <Label>Location on Map</Label>
+                <InteractiveMap 
+                  latitude={newHousehold.latitude}
+                  longitude={newHousehold.longitude}
+                  onLocationChange={(lat, lng) => setNewHousehold({...newHousehold, latitude: lat, longitude: lng})}
+                  className="w-full h-[300px] rounded-lg border border-border"
+                />
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  {newHousehold.latitude.toFixed(6)}, {newHousehold.longitude.toFixed(6)}
+                </p>
+                <p className="text-xs text-muted-foreground">Click map or drag marker to select location</p>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="utilities">Utilities Status</Label>
-                <Select>
-                  <SelectTrigger id="utilities">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No utilities</SelectItem>
-                    <SelectItem value="electricity">Electricity only</SelectItem>
-                    <SelectItem value="water">Water only</SelectItem>
-                    <SelectItem value="both">Electricity & Water</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid gap-3">
+                <Label>Utility Connections</Label>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Connected to Electricity</span>
+                  <Switch 
+                    checked={newHousehold.has_electricity}
+                    onCheckedChange={(checked) => setNewHousehold({...newHousehold, has_electricity: checked})}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Connected to Water Supply</span>
+                  <Switch 
+                    checked={newHousehold.has_water}
+                    onCheckedChange={(checked) => setNewHousehold({...newHousehold, has_water: checked})}
+                  />
+                </div>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button className="bg-primary hover:bg-primary/90">Save Household</Button>
+              <Button 
+                className="bg-primary hover:bg-primary/90"
+                onClick={handleAddHousehold}
+                disabled={!newHousehold.house_number}
+              >
+                Save Household
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -194,45 +248,73 @@ const Households = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {households.map((household) => (
-              <TableRow key={household.id}>
-                <TableCell className="font-medium">{household.houseNumber}</TableCell>
-                <TableCell className="text-secondary">{household.purok}</TableCell>
-                <TableCell className="text-accent">{household.address}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <Users className="h-4 w-4" />
-                    <span>{household.residents}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <span className="text-destructive text-sm">{household.utilities}</span>
-                </TableCell>
-                <TableCell>
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8"
-                      onClick={() => handleEdit(household)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(household)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+            {loading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                </TableRow>
+              ))
+            ) : filteredHouseholds.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  No households found
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredHouseholds.map((household) => (
+                <TableRow key={household.id}>
+                  <TableCell className="font-medium">{household.house_number}</TableCell>
+                  <TableCell className="text-muted-foreground">{household.purok || '-'}</TableCell>
+                  <TableCell className="text-muted-foreground">{household.street_address || '-'}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                      <span>0</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1 text-xs">
+                      {household.has_electricity && <span className="text-green-600">⚡ Electricity</span>}
+                      {household.has_water && <span className="text-blue-600">💧 Water</span>}
+                      {!household.has_electricity && !household.has_water && <span className="text-muted-foreground">No utilities</span>}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {household.latitude && household.longitude ? (
+                      <MapPin className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => handleEdit(household)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(household)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
@@ -249,36 +331,59 @@ const Households = () => {
           {selectedHousehold && (
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="edit-houseNumber">House Number</Label>
+                <Label htmlFor="edit-houseNumber">House Number *</Label>
                 <Input 
                   id="edit-houseNumber" 
-                  value={selectedHousehold.houseNumber}
-                  onChange={(e) => setSelectedHousehold({...selectedHousehold, houseNumber: e.target.value})}
+                  value={selectedHousehold.house_number}
+                  onChange={(e) => setSelectedHousehold({...selectedHousehold, house_number: e.target.value})}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-purok">Purok/Zone</Label>
+                <Label htmlFor="edit-purok">Purok</Label>
                 <Input 
                   id="edit-purok" 
-                  value={selectedHousehold.purok}
+                  value={selectedHousehold.purok || ''}
                   onChange={(e) => setSelectedHousehold({...selectedHousehold, purok: e.target.value})}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-address">Address</Label>
+                <Label htmlFor="edit-address">Street Address</Label>
                 <Input 
                   id="edit-address" 
-                  value={selectedHousehold.address}
-                  onChange={(e) => setSelectedHousehold({...selectedHousehold, address: e.target.value})}
+                  value={selectedHousehold.street_address || ''}
+                  onChange={(e) => setSelectedHousehold({...selectedHousehold, street_address: e.target.value})}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-utilities">Utilities Status</Label>
-                <Input 
-                  id="edit-utilities" 
-                  value={selectedHousehold.utilities}
-                  onChange={(e) => setSelectedHousehold({...selectedHousehold, utilities: e.target.value})}
+                <Label>Location on Map</Label>
+                <InteractiveMap 
+                  latitude={selectedHousehold.latitude || 14.5995}
+                  longitude={selectedHousehold.longitude || 120.9842}
+                  onLocationChange={(lat, lng) => setSelectedHousehold({...selectedHousehold, latitude: lat, longitude: lng})}
+                  className="w-full h-[300px] rounded-lg border border-border"
                 />
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  {(selectedHousehold.latitude || 14.5995).toFixed(6)}, {(selectedHousehold.longitude || 120.9842).toFixed(6)}
+                </p>
+                <p className="text-xs text-muted-foreground">Click map or drag marker to select location</p>
+              </div>
+              <div className="grid gap-3">
+                <Label>Utility Connections</Label>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Connected to Electricity</span>
+                  <Switch 
+                    checked={selectedHousehold.has_electricity}
+                    onCheckedChange={(checked) => setSelectedHousehold({...selectedHousehold, has_electricity: checked})}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Connected to Water Supply</span>
+                  <Switch 
+                    checked={selectedHousehold.has_water}
+                    onCheckedChange={(checked) => setSelectedHousehold({...selectedHousehold, has_water: checked})}
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -299,7 +404,7 @@ const Households = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Household</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete House {selectedHousehold?.houseNumber}? This action cannot be undone.
+              Are you sure you want to delete House {selectedHousehold?.house_number}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
