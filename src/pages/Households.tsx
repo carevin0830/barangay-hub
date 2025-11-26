@@ -132,18 +132,7 @@ const Households = () => {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="purok">Purok/Zone</Label>
-                <Select>
-                  <SelectTrigger id="purok">
-                    <SelectValue placeholder="Select purok" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="zone1">Zone 1</SelectItem>
-                    <SelectItem value="zone2">Zone 2</SelectItem>
-                    <SelectItem value="zone3">Zone 3</SelectItem>
-                    <SelectItem value="longlongboy">Longlongboy</SelectItem>
-                    <SelectItem value="bisil">Bisil</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input id="purok" placeholder="e.g., Zone 1, Longlongboy" />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="address">Address</Label>

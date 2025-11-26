@@ -163,18 +163,7 @@ const Residents = () => {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="zone">Zone/Purok</Label>
-                  <Select>
-                    <SelectTrigger id="zone">
-                      <SelectValue placeholder="Select zone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="zone1">Zone 1</SelectItem>
-                      <SelectItem value="zone2">Zone 2</SelectItem>
-                      <SelectItem value="zone3">Zone 3</SelectItem>
-                      <SelectItem value="zone4">Zone 4</SelectItem>
-                      <SelectItem value="zone5">Zone 5</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input id="zone" placeholder="e.g., Zone 1" />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="status">Status</Label>
@@ -320,21 +309,12 @@ const Residents = () => {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-zone">Zone/Purok</Label>
-                <Select 
+                <Input 
+                  id="edit-zone" 
                   value={selectedResident.location}
-                  onValueChange={(value) => setSelectedResident({...selectedResident, location: value})}
-                >
-                  <SelectTrigger id="edit-zone">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Zone 1">Zone 1</SelectItem>
-                    <SelectItem value="Zone 2">Zone 2</SelectItem>
-                    <SelectItem value="Zone 3">Zone 3</SelectItem>
-                    <SelectItem value="Zone 4">Zone 4</SelectItem>
-                    <SelectItem value="Zone 5">Zone 5</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={(e) => setSelectedResident({...selectedResident, location: e.target.value})}
+                  placeholder="e.g., Zone 1"
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-special">Special Status</Label>
