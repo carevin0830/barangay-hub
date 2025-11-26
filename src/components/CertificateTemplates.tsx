@@ -1,4 +1,5 @@
 import React from "react";
+import barangayLogo from '@/assets/barangay-logo.png';
 
 type Certificate = {
   certificate_no: string;
@@ -32,14 +33,23 @@ export const CertificateTemplates = React.forwardRef<HTMLDivElement, Certificate
 
     if (certificate.certificate_type === "Barangay Clearance") {
       return (
-        <div ref={ref} className="bg-white text-black p-12 max-w-4xl mx-auto print:p-8">
+        <div ref={ref} className="bg-white text-black p-12 max-w-4xl mx-auto print:p-8 relative">
+          {/* Logos */}
+          <div className="flex justify-between items-start mb-4">
+            <img src={barangayLogo} alt="Barangay Logo" className="w-20 h-20" />
+            <img src={barangayLogo} alt="Barangay Logo" className="w-20 h-20" />
+          </div>
+
           <div className="text-center mb-8">
-            <p className="text-sm">Republic of the Philippines</p>
+            <p className="text-sm">Republic of the Philippine</p>
             <p className="text-sm">Cordillera Administrative Region</p>
             <p className="text-sm">Province of Abra</p>
             <p className="text-sm">Municipality of Lagangilang</p>
             <p className="text-sm font-semibold">Barangay Poblacion</p>
-            <p className="text-xs mt-2">OFFICE OF THE PUNONG BARANGAY</p>
+          </div>
+
+          <div className="border-t-2 border-b-2 border-black py-1 mb-8">
+            <p className="text-xs text-center font-bold">OFFICE OF THE PUNONG BARANGAY</p>
           </div>
 
           <h1 className="text-3xl font-bold text-center my-8 tracking-widest">C L E A R A N C E</h1>
@@ -84,14 +94,23 @@ export const CertificateTemplates = React.forwardRef<HTMLDivElement, Certificate
 
     if (certificate.certificate_type === "Certificate of Indigency") {
       return (
-        <div ref={ref} className="bg-white text-black p-12 max-w-4xl mx-auto print:p-8">
+        <div ref={ref} className="bg-white text-black p-12 max-w-4xl mx-auto print:p-8 relative">
+          {/* Logos */}
+          <div className="flex justify-between items-start mb-4">
+            <img src={barangayLogo} alt="Barangay Logo" className="w-20 h-20" />
+            <img src={barangayLogo} alt="Barangay Logo" className="w-20 h-20" />
+          </div>
+
           <div className="text-center mb-8">
-            <p className="text-sm">Republic of the Philippines</p>
+            <p className="text-sm">Republic of the Philippine</p>
             <p className="text-sm">Cordillera Administrative Region</p>
             <p className="text-sm">Province of Abra</p>
             <p className="text-sm">Municipality of Lagangilang</p>
             <p className="text-sm font-semibold">Barangay Poblacion</p>
-            <p className="text-xs mt-2">OFFICE OF THE PUNONG BARANGAY</p>
+          </div>
+
+          <div className="border-t-2 border-b-2 border-black py-1 mb-8">
+            <p className="text-xs text-center font-bold">OFFICE OF THE PUNONG BARANGAY</p>
           </div>
 
           <h1 className="text-2xl font-bold text-center my-8">CERTIFICATE OF INDIGENCY</h1>
@@ -134,14 +153,23 @@ export const CertificateTemplates = React.forwardRef<HTMLDivElement, Certificate
 
     if (certificate.certificate_type === "Certificate of Residency") {
       return (
-        <div ref={ref} className="bg-white text-black p-12 max-w-4xl mx-auto print:p-8">
+        <div ref={ref} className="bg-white text-black p-12 max-w-4xl mx-auto print:p-8 relative">
+          {/* Logos */}
+          <div className="flex justify-between items-start mb-4">
+            <img src={barangayLogo} alt="Barangay Logo" className="w-20 h-20" />
+            <img src={barangayLogo} alt="Barangay Logo" className="w-20 h-20" />
+          </div>
+
           <div className="text-center mb-8">
             <p className="text-sm">Republic of the Philippines</p>
             <p className="text-sm">Cordillera Administrative Region</p>
             <p className="text-sm">Province of Abra</p>
             <p className="text-sm">Municipality of Lagangilang</p>
             <p className="text-sm font-semibold">BARANGAY POBLACION</p>
-            <p className="text-xs mt-2">OFFICE OF THE PUNONG BARANGAY</p>
+          </div>
+
+          <div className="border-t-2 border-b-2 border-black py-1 mb-8">
+            <p className="text-xs text-center font-bold">OFFICE OF THE PUNONG BARANGAY</p>
           </div>
 
           <h1 className="text-2xl font-bold text-center my-8">CERTIFICATE OF RESIDENCY</h1>
@@ -200,14 +228,23 @@ export const CertificateTemplates = React.forwardRef<HTMLDivElement, Certificate
 
     if (certificate.certificate_type === "Business Permit") {
       return (
-        <div ref={ref} className="bg-white text-black p-12 max-w-4xl mx-auto print:p-8">
+        <div ref={ref} className="bg-white text-black p-12 max-w-4xl mx-auto print:p-8 relative">
+          {/* Logos */}
+          <div className="flex justify-between items-start mb-4">
+            <img src={barangayLogo} alt="Barangay Logo" className="w-20 h-20" />
+            <img src={barangayLogo} alt="Barangay Logo" className="w-20 h-20" />
+          </div>
+
           <div className="text-center mb-8">
             <p className="text-sm">Republic of the Philippines</p>
             <p className="text-sm">Cordillera Administrative Region</p>
             <p className="text-sm">Province of Abra</p>
             <p className="text-sm">Municipality of Lagangilang</p>
             <p className="text-sm font-semibold">BARANGAY POBLACION</p>
-            <p className="text-xs mt-2">OFFICE OF THE PUNONG BARANGAY</p>
+          </div>
+
+          <div className="border-t-2 border-b-2 border-black py-1 mb-8">
+            <p className="text-xs text-center font-bold">OFFICE OF THE PUNONG BARANGAY</p>
           </div>
 
           <h1 className="text-2xl font-bold text-center my-8">C E R T I F I C A T I O N</h1>
