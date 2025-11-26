@@ -20,9 +20,9 @@ const HouseholdsMap = ({ className }: HouseholdsMapProps) => {
         sources: {
           osm: {
             type: 'raster',
-            tiles: ['https://tiles.openfreemap.org/osm/{z}/{x}/{y}.png'],
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
             tileSize: 256,
-            attribution: '&copy; OpenFreeMap Contributors',
+            attribution: '&copy; OpenStreetMap Contributors',
             maxzoom: 19
           }
         },
