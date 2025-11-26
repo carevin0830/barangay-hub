@@ -29,9 +29,9 @@ const InteractiveMap = ({
         sources: {
           osm: {
             type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tiles: ['https://tiles.openfreemap.org/osm/{z}/{x}/{y}.png'],
             tileSize: 256,
-            attribution: '&copy; OpenStreetMap Contributors',
+            attribution: '&copy; OpenFreeMap Contributors',
             maxzoom: 19
           }
         },
