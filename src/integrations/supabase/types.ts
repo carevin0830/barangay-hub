@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      activities: {
+        Row: {
+          created_at: string
+          date: string
+          description: string | null
+          expected_participants: number | null
+          id: string
+          location: string
+          name: string
+          status: string
+          time: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          description?: string | null
+          expected_participants?: number | null
+          id?: string
+          location: string
+          name: string
+          status?: string
+          time: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          description?: string | null
+          expected_participants?: number | null
+          id?: string
+          location?: string
+          name?: string
+          status?: string
+          time?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       certificates: {
         Row: {
           amount_paid: number | null
