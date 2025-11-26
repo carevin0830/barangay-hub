@@ -13,40 +13,46 @@ const HouseholdsMap = ({ className }: HouseholdsMapProps) => {
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    map.current = new maplibregl.Map({
-      container: mapContainer.current,
-      style: {
-        version: 8,
-        sources: {
-          osm: {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '&copy; OpenStreetMap Contributors',
-            maxzoom: 19
-          }
-        },
-        layers: [
-          {
-            id: 'osm',
-            type: 'raster',
-            source: 'osm'
-          }
-        ]
-      },
-      center: [120.9842, 14.5995], // Manila, Philippines coordinates - adjust as needed
-      zoom: 13
-    });
+    // Small delay to ensure container has dimensions
+    const timer = setTimeout(() => {
+      if (!mapContainer.current) return;
 
-    map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
+      map.current = new maplibregl.Map({
+        container: mapContainer.current,
+        style: {
+          version: 8,
+          sources: {
+            osm: {
+              type: 'raster',
+              tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+              tileSize: 256,
+              attribution: '&copy; OpenStreetMap Contributors',
+              maxzoom: 19
+            }
+          },
+          layers: [
+            {
+              id: 'osm',
+              type: 'raster',
+              source: 'osm'
+            }
+          ]
+        },
+        center: [120.9842, 14.5995], // Manila, Philippines coordinates - adjust as needed
+        zoom: 13
+      });
+
+      map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
+    }, 100);
 
     return () => {
+      clearTimeout(timer);
       map.current?.remove();
     };
   }, []);
 
   return (
-    <div ref={mapContainer} className={className} />
+    <div ref={mapContainer} className={className} style={{ minHeight: '400px' }} />
   );
 };
 
