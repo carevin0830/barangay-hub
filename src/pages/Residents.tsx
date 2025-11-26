@@ -423,7 +423,7 @@ const Residents = () => {
               <TableRow key={resident.id}>
                 <TableCell className="font-medium">{resident.full_name}</TableCell>
                 <TableCell>{resident.age}</TableCell>
-                <TableCell>{resident.purok}</TableCell>
+                <TableCell>{resident.households?.house_number || "—"}</TableCell>
                 <TableCell>
                   <Badge 
                     variant="outline" 
