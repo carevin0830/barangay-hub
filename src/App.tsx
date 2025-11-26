@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Building2, FileText, Calendar, BarChart3, Settings as SettingsIcon, Award } from "lucide-react";
 import Layout from "./components/Layout";
+import { AuthProvider } from "@/hooks/useAuth";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Residents from "./pages/Residents";
 import Households from "./pages/Households";
@@ -15,6 +17,7 @@ import Activities from "./pages/Activities";
 import Reports from "./pages/Reports";
 import Certificates from "./pages/Certificates";
 import Settings from "./pages/Settings";
+import Auth from "./pages/Auth";
 import Placeholder from "./pages/Placeholder";
 import NotFound from "./pages/NotFound";
 
@@ -27,21 +30,21 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Layout>
+          <AuthProvider>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/residents" element={<Residents />} />
-              <Route path="/households" element={<Households />} />
-              <Route path="/officials" element={<Officials />} />
-              <Route path="/ordinances" element={<Ordinances />} />
-              <Route path="/activities" element={<Activities />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/certificates" element={<Certificates />} />
-              <Route path="/settings" element={<Settings />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+              <Route path="/residents" element={<ProtectedRoute><Layout><Residents /></Layout></ProtectedRoute>} />
+              <Route path="/households" element={<ProtectedRoute><Layout><Households /></Layout></ProtectedRoute>} />
+              <Route path="/officials" element={<ProtectedRoute><Layout><Officials /></Layout></ProtectedRoute>} />
+              <Route path="/ordinances" element={<ProtectedRoute><Layout><Ordinances /></Layout></ProtectedRoute>} />
+              <Route path="/activities" element={<ProtectedRoute><Layout><Activities /></Layout></ProtectedRoute>} />
+              <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
+              <Route path="/certificates" element={<ProtectedRoute><Layout><Certificates /></Layout></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </Layout>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
