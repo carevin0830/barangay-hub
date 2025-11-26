@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Search, Plus, Edit2, Trash2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -41,33 +44,141 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
-const initialOrdinances = [
-  {
-    id: 1,
-    ordinanceNo: "8788",
-    title: "test",
-    subtitle: "test",
-    dateEnacted: "Oct 22, 2025",
-    status: "Amended",
-  },
-  {
-    id: 2,
-    ordinanceNo: "ORDINANCE NO. 2",
-    title: "AN ORDINANCE ENACTING THE BARANGAY TAX CODE OF POBLACION, LAGANGILANG, ABRA",
-    subtitle: "SECTION 5-LOCAL TAXING AUTHORITY. THE POWER TO IMPOSE A TAX, FEE, OR CHARGE OR TO...",
-    dateEnacted: "Nov 20, 2023",
-    status: "Active",
-  },
-];
+type Ordinance = {
+  id: string;
+  ordinance_number: string;
+  title: string;
+  description: string;
+  date_enacted: string;
+  status: string;
+};
 
 const Ordinances = () => {
   const { toast } = useToast();
-  const [ordinances, setOrdinances] = useState(initialOrdinances);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedOrdinance, setSelectedOrdinance] = useState<typeof initialOrdinances[0] | null>(null);
+  const [selectedOrdinance, setSelectedOrdinance] = useState<Ordinance | null>(null);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    ordinance_number: "",
+    title: "",
+    description: "",
+    date_enacted: "",
+    status: "Active",
+  });
+
+  // Fetch ordinances
+  const { data: ordinances = [] } = useQuery({
+    queryKey: ["ordinances"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ordinances")
+        .select("*")
+        .order("date_enacted", { ascending: false });
+      
+      if (error) throw error;
+      return data as Ordinance[];
+    },
+  });
+
+  // Add ordinance mutation
+  const addOrdinanceMutation = useMutation({
+    mutationFn: async (newOrdinance: typeof formData) => {
+      const { error } = await supabase
+        .from("ordinances")
+        .insert([newOrdinance]);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ordinances"] });
+      toast({
+        title: "Ordinance added",
+        description: "The ordinance has been successfully added.",
+      });
+      setIsAddDialogOpen(false);
+      setFormData({
+        ordinance_number: "",
+        title: "",
+        description: "",
+        date_enacted: "",
+        status: "Active",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update ordinance mutation
+  const updateOrdinanceMutation = useMutation({
+    mutationFn: async (updatedOrdinance: Ordinance) => {
+      const { error } = await supabase
+        .from("ordinances")
+        .update({
+          ordinance_number: updatedOrdinance.ordinance_number,
+          title: updatedOrdinance.title,
+          description: updatedOrdinance.description,
+          date_enacted: updatedOrdinance.date_enacted,
+          status: updatedOrdinance.status,
+        })
+        .eq("id", updatedOrdinance.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ordinances"] });
+      toast({
+        title: "Ordinance updated",
+        description: "The ordinance has been successfully updated.",
+      });
+      setIsEditDialogOpen(false);
+      setSelectedOrdinance(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete ordinance mutation
+  const deleteOrdinanceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("ordinances")
+        .delete()
+        .eq("id", id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ordinances"] });
+      toast({
+        title: "Ordinance deleted",
+        description: "The ordinance has been successfully deleted.",
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedOrdinance(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const getStatusBadgeStyle = (status: string) => {
     if (status === "Active") {
@@ -79,40 +190,38 @@ const Ordinances = () => {
     return "bg-muted text-muted-foreground hover:bg-muted/90";
   };
 
-  const handleEdit = (ordinance: typeof initialOrdinances[0]) => {
+  const handleEdit = (ordinance: Ordinance) => {
     setSelectedOrdinance(ordinance);
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (ordinance: typeof initialOrdinances[0]) => {
+  const handleDelete = (ordinance: Ordinance) => {
     setSelectedOrdinance(ordinance);
     setIsDeleteDialogOpen(true);
   };
 
   const confirmDelete = () => {
     if (selectedOrdinance) {
-      setOrdinances(ordinances.filter(o => o.id !== selectedOrdinance.id));
-      toast({
-        title: "Ordinance deleted",
-        description: `${selectedOrdinance.ordinanceNo} has been removed.`,
-      });
-      setIsDeleteDialogOpen(false);
-      setSelectedOrdinance(null);
+      deleteOrdinanceMutation.mutate(selectedOrdinance.id);
     }
   };
 
   const saveEdit = () => {
     if (selectedOrdinance) {
-      setOrdinances(ordinances.map(o => 
-        o.id === selectedOrdinance.id ? selectedOrdinance : o
-      ));
-      toast({
-        title: "Ordinance updated",
-        description: `${selectedOrdinance.ordinanceNo} has been updated.`,
-      });
-      setIsEditDialogOpen(false);
-      setSelectedOrdinance(null);
+      updateOrdinanceMutation.mutate(selectedOrdinance);
     }
+  };
+
+  const handleAddOrdinance = () => {
+    if (!formData.ordinance_number || !formData.title || !formData.description || !formData.date_enacted) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    addOrdinanceMutation.mutate(formData);
   };
 
   return (
@@ -146,11 +255,21 @@ const Ordinances = () => {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="ordinanceNo">Ordinance Number</Label>
-                <Input id="ordinanceNo" placeholder="ORDINANCE NO. 1" />
+                <Input 
+                  id="ordinanceNo" 
+                  placeholder="ORDINANCE NO. 1" 
+                  value={formData.ordinance_number}
+                  onChange={(e) => setFormData({ ...formData, ordinance_number: e.target.value })}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="title">Title</Label>
-                <Input id="title" placeholder="AN ORDINANCE..." />
+                <Input 
+                  id="title" 
+                  placeholder="AN ORDINANCE..." 
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="description">Description/Section</Label>
@@ -158,22 +277,32 @@ const Ordinances = () => {
                   id="description" 
                   placeholder="SECTION 1 - Brief description of the ordinance..."
                   rows={4}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="dateEnacted">Date Enacted</Label>
-                <Input id="dateEnacted" type="date" />
+                <Input 
+                  id="dateEnacted" 
+                  type="date" 
+                  value={formData.date_enacted}
+                  onChange={(e) => setFormData({ ...formData, date_enacted: e.target.value })}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="status">Status</Label>
-                <Select>
+                <Select 
+                  value={formData.status}
+                  onValueChange={(value) => setFormData({ ...formData, status: value })}
+                >
                   <SelectTrigger id="status">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="amended">Amended</SelectItem>
-                    <SelectItem value="repealed">Repealed</SelectItem>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Amended">Amended</SelectItem>
+                    <SelectItem value="Repealed">Repealed</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -182,7 +311,12 @@ const Ordinances = () => {
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button className="bg-primary hover:bg-primary/90">Save Ordinance</Button>
+              <Button 
+                className="bg-primary hover:bg-primary/90"
+                onClick={handleAddOrdinance}
+              >
+                Save Ordinance
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -206,18 +340,16 @@ const Ordinances = () => {
           <TableBody>
             {ordinances.map((ordinance) => (
               <TableRow key={ordinance.id}>
-                <TableCell className="font-medium">{ordinance.ordinanceNo}</TableCell>
+                <TableCell className="font-medium">{ordinance.ordinance_number}</TableCell>
                 <TableCell className="max-w-md">
                   <div>
                     <div className="font-medium text-secondary">{ordinance.title}</div>
-                    {ordinance.subtitle && (
-                      <div className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {ordinance.subtitle}
-                      </div>
-                    )}
+                    <div className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                      {ordinance.description}
+                    </div>
                   </div>
                 </TableCell>
-                <TableCell>{ordinance.dateEnacted}</TableCell>
+                <TableCell>{format(new Date(ordinance.date_enacted), "MMM dd, yyyy")}</TableCell>
                 <TableCell>
                   <Badge className={getStatusBadgeStyle(ordinance.status)}>
                     {ordinance.status}
@@ -264,8 +396,8 @@ const Ordinances = () => {
                 <Label htmlFor="edit-ordinanceNo">Ordinance Number</Label>
                 <Input 
                   id="edit-ordinanceNo" 
-                  value={selectedOrdinance.ordinanceNo}
-                  onChange={(e) => setSelectedOrdinance({...selectedOrdinance, ordinanceNo: e.target.value})}
+                  value={selectedOrdinance.ordinance_number}
+                  onChange={(e) => setSelectedOrdinance({...selectedOrdinance, ordinance_number: e.target.value})}
                 />
               </div>
               <div className="grid gap-2">
@@ -277,11 +409,11 @@ const Ordinances = () => {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-subtitle">Description/Section</Label>
+                <Label htmlFor="edit-description">Description/Section</Label>
                 <Textarea 
-                  id="edit-subtitle" 
-                  value={selectedOrdinance.subtitle}
-                  onChange={(e) => setSelectedOrdinance({...selectedOrdinance, subtitle: e.target.value})}
+                  id="edit-description" 
+                  value={selectedOrdinance.description}
+                  onChange={(e) => setSelectedOrdinance({...selectedOrdinance, description: e.target.value})}
                   rows={4}
                 />
               </div>
@@ -289,9 +421,26 @@ const Ordinances = () => {
                 <Label htmlFor="edit-dateEnacted">Date Enacted</Label>
                 <Input 
                   id="edit-dateEnacted" 
-                  value={selectedOrdinance.dateEnacted}
-                  onChange={(e) => setSelectedOrdinance({...selectedOrdinance, dateEnacted: e.target.value})}
+                  type="date"
+                  value={selectedOrdinance.date_enacted}
+                  onChange={(e) => setSelectedOrdinance({...selectedOrdinance, date_enacted: e.target.value})}
                 />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <Select 
+                  value={selectedOrdinance.status}
+                  onValueChange={(value) => setSelectedOrdinance({...selectedOrdinance, status: value})}
+                >
+                  <SelectTrigger id="edit-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Amended">Amended</SelectItem>
+                    <SelectItem value="Repealed">Repealed</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}
@@ -312,7 +461,7 @@ const Ordinances = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Ordinance</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {selectedOrdinance?.ordinanceNo}? This action cannot be undone.
+              Are you sure you want to delete {selectedOrdinance?.ordinance_number}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

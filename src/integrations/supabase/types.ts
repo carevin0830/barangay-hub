@@ -162,6 +162,39 @@ export type Database = {
           },
         ]
       }
+      ordinances: {
+        Row: {
+          created_at: string
+          date_enacted: string
+          description: string
+          id: string
+          ordinance_number: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_enacted: string
+          description: string
+          id?: string
+          ordinance_number: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_enacted?: string
+          description?: string
+          id?: string
+          ordinance_number?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       residents: {
         Row: {
           age: number
