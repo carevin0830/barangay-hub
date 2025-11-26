@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Search, UserPlus, Edit2, Trash2 } from "lucide-react";
+import { Search, UserPlus, Edit2, Trash2, Check, ChevronsUpDown } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -39,28 +41,176 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
-const initialOfficials = [
-  {
-    id: 1,
-    name: "CATHERINE ARTIENDA DUMLAO",
-    position: "Secretary",
-    termStart: "Jul 1, 2019",
-    termEnd: "—",
-    status: "Active",
-    initials: "CD",
-  },
-];
+type Official = {
+  id: string;
+  resident_id: string;
+  position: string;
+  term_start: string;
+  term_end: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  residents: {
+    full_name: string;
+  };
+};
+
+type Resident = {
+  id: string;
+  full_name: string;
+  age: number;
+  status: string;
+};
 
 const Officials = () => {
   const { toast } = useToast();
-  const [officials, setOfficials] = useState(initialOfficials);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedOfficial, setSelectedOfficial] = useState<typeof initialOfficials[0] | null>(null);
+  const [selectedOfficial, setSelectedOfficial] = useState<Official | null>(null);
+  const [openResidentCombobox, setOpenResidentCombobox] = useState(false);
+  const [openEditResidentCombobox, setOpenEditResidentCombobox] = useState(false);
+  const [newOfficial, setNewOfficial] = useState({
+    resident_id: "",
+    position: "",
+    term_start: "",
+    term_end: "",
+    status: "Active"
+  });
+
+  // Fetch officials
+  const { data: officials = [] } = useQuery<Official[]>({
+    queryKey: ['officials'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('officials')
+        .select('*, residents(full_name)')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return (data as unknown as Official[]) || [];
+    }
+  });
+
+  // Fetch active residents
+  const { data: residents = [] } = useQuery<Resident[]>({
+    queryKey: ['active-residents'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('residents')
+        .select('id, full_name, age, status')
+        .eq('status', 'Active')
+        .order('full_name');
+      
+      if (error) throw error;
+      return (data as unknown as Resident[]) || [];
+    }
+  });
+
+  // Add mutation
+  const addMutation = useMutation({
+    mutationFn: async (official: any) => {
+      const { data, error } = await supabase
+        .from('officials')
+        .insert([official])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['officials'] });
+      toast({
+        title: "Official added",
+        description: "New official has been added successfully.",
+      });
+      setIsAddDialogOpen(false);
+      setNewOfficial({
+        resident_id: "",
+        position: "",
+        term_start: "",
+        term_end: "",
+        status: "Active"
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to add official. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: async (official: any) => {
+      const { data, error } = await supabase
+        .from('officials')
+        .update({
+          resident_id: official.resident_id,
+          position: official.position,
+          term_start: official.term_start,
+          term_end: official.term_end || null,
+          status: official.status
+        })
+        .eq('id', official.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['officials'] });
+      toast({
+        title: "Official updated",
+        description: "Official information has been updated.",
+      });
+      setIsEditDialogOpen(false);
+      setSelectedOfficial(null);
+    }
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('officials')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['officials'] });
+      toast({
+        title: "Official deleted",
+        description: "Official has been removed.",
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedOfficial(null);
+    }
+  });
 
   const getStatusBadgeStyle = (status: string) => {
     if (status === "Active") {
@@ -73,52 +223,68 @@ const Officials = () => {
     return currentStatus === "Active" ? "Inactive" : "Active";
   };
 
-  const handleStatusClick = (official: typeof initialOfficials[0]) => {
+  const handleStatusClick = async (official: Official) => {
     const newStatus = cycleStatus(official.status);
-    setOfficials(officials.map(o => 
-      o.id === official.id ? { ...o, status: newStatus } : o
-    ));
-    toast({
-      title: "Status updated",
-      description: `${official.name}'s status changed to ${newStatus}.`,
-    });
+    await updateMutation.mutateAsync({ ...official, status: newStatus });
   };
 
-  const handleEdit = (official: typeof initialOfficials[0]) => {
+  const handleEdit = (official: Official) => {
     setSelectedOfficial(official);
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (official: typeof initialOfficials[0]) => {
+  const handleDelete = (official: Official) => {
     setSelectedOfficial(official);
     setIsDeleteDialogOpen(true);
   };
 
   const confirmDelete = () => {
     if (selectedOfficial) {
-      setOfficials(officials.filter(o => o.id !== selectedOfficial.id));
-      toast({
-        title: "Official deleted",
-        description: `${selectedOfficial.name} has been removed.`,
-      });
-      setIsDeleteDialogOpen(false);
-      setSelectedOfficial(null);
+      deleteMutation.mutate(selectedOfficial.id);
     }
   };
 
   const saveEdit = () => {
     if (selectedOfficial) {
-      setOfficials(officials.map(o => 
-        o.id === selectedOfficial.id ? selectedOfficial : o
-      ));
-      toast({
-        title: "Official updated",
-        description: `${selectedOfficial.name}'s information has been updated.`,
-      });
-      setIsEditDialogOpen(false);
-      setSelectedOfficial(null);
+      updateMutation.mutate(selectedOfficial);
     }
   };
+
+  const handleAddOfficial = () => {
+    if (!newOfficial.resident_id || !newOfficial.position || !newOfficial.term_start || !newOfficial.status) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in all required fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    addMutation.mutate({
+      resident_id: newOfficial.resident_id,
+      position: newOfficial.position,
+      term_start: newOfficial.term_start,
+      term_end: newOfficial.term_end || null,
+      status: newOfficial.status
+    });
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const selectedResident = residents.find(r => r.id === newOfficial.resident_id);
+  const selectedEditResident = residents.find(r => r.id === selectedOfficial?.resident_id);
+
+  const filteredOfficials = officials.filter(official =>
+    official.residents.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    official.position.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="p-6 md:p-8">
@@ -159,41 +325,93 @@ const Officials = () => {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="fullname">Full Name</Label>
-                <Input id="fullname" placeholder="Juan Dela Cruz" />
+                <Label htmlFor="resident">Full Name</Label>
+                <Popover open={openResidentCombobox} onOpenChange={setOpenResidentCombobox}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openResidentCombobox}
+                      className="justify-between"
+                    >
+                      {selectedResident ? selectedResident.full_name : "Select resident..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search residents..." />
+                      <CommandList>
+                        <CommandEmpty>No resident found.</CommandEmpty>
+                        <CommandGroup>
+                          {residents.map((resident) => (
+                            <CommandItem
+                              key={resident.id}
+                              value={resident.full_name}
+                              onSelect={() => {
+                                setNewOfficial({ ...newOfficial, resident_id: resident.id });
+                                setOpenResidentCombobox(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  newOfficial.resident_id === resident.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {resident.full_name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="position">Position</Label>
-                <Select>
+                <Select value={newOfficial.position} onValueChange={(value) => setNewOfficial({ ...newOfficial, position: value })}>
                   <SelectTrigger id="position">
                     <SelectValue placeholder="Select position" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="captain">Barangay Captain</SelectItem>
-                    <SelectItem value="secretary">Secretary</SelectItem>
-                    <SelectItem value="treasurer">Treasurer</SelectItem>
+                    <SelectItem value="Barangay Captain">Barangay Captain</SelectItem>
+                    <SelectItem value="Secretary">Secretary</SelectItem>
+                    <SelectItem value="Treasurer">Treasurer</SelectItem>
+                    <SelectItem value="Kagawad">Kagawad</SelectItem>
+                    <SelectItem value="SK Chairperson">SK Chairperson</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="termStart">Term Start</Label>
-                  <Input id="termStart" type="date" />
+                  <Input
+                    id="termStart"
+                    type="date"
+                    value={newOfficial.term_start}
+                    onChange={(e) => setNewOfficial({ ...newOfficial, term_start: e.target.value })}
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="termEnd">Term End</Label>
-                  <Input id="termEnd" type="date" />
+                  <Input
+                    id="termEnd"
+                    type="date"
+                    value={newOfficial.term_end}
+                    onChange={(e) => setNewOfficial({ ...newOfficial, term_end: e.target.value })}
+                  />
                 </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="status">Status</Label>
-                <Select>
+                <Select value={newOfficial.status} onValueChange={(value) => setNewOfficial({ ...newOfficial, status: value })}>
                   <SelectTrigger id="status">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -202,7 +420,13 @@ const Officials = () => {
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button className="bg-primary hover:bg-primary/90">Save Official</Button>
+              <Button
+                className="bg-primary hover:bg-primary/90"
+                onClick={handleAddOfficial}
+                disabled={addMutation.isPending}
+              >
+                {addMutation.isPending ? "Saving..." : "Save Official"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -226,21 +450,23 @@ const Officials = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {officials.map((official) => (
+            {filteredOfficials.map((official) => (
               <TableRow key={official.id}>
                 <TableCell>
                   <Avatar className="h-10 w-10">
                     <AvatarFallback className="bg-muted text-muted-foreground font-medium">
-                      {official.initials}
+                      {getInitials(official.residents.full_name)}
                     </AvatarFallback>
                   </Avatar>
                 </TableCell>
-                <TableCell className="font-medium">{official.name}</TableCell>
+                <TableCell className="font-medium">{official.residents.full_name}</TableCell>
                 <TableCell className="text-muted-foreground">{official.position}</TableCell>
-                <TableCell>{official.termStart}</TableCell>
-                <TableCell className="text-muted-foreground">{official.termEnd}</TableCell>
+                <TableCell>{new Date(official.term_start).toLocaleDateString()}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {official.term_end ? new Date(official.term_end).toLocaleDateString() : "—"}
+                </TableCell>
                 <TableCell>
-                  <Badge 
+                  <Badge
                     className={`${getStatusBadgeStyle(official.status)} cursor-pointer`}
                     onClick={() => handleStatusClick(official)}
                   >
@@ -249,17 +475,17 @@ const Officials = () => {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="h-8 w-8"
                       onClick={() => handleEdit(official)}
                     >
                       <Edit2 className="h-4 w-4" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"
                       onClick={() => handleDelete(official)}
                     >
@@ -285,36 +511,84 @@ const Officials = () => {
           {selectedOfficial && (
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="edit-fullname">Full Name</Label>
-                <Input 
-                  id="edit-fullname" 
-                  value={selectedOfficial.name}
-                  onChange={(e) => setSelectedOfficial({...selectedOfficial, name: e.target.value})}
-                />
+                <Label htmlFor="edit-resident">Full Name</Label>
+                <Popover open={openEditResidentCombobox} onOpenChange={setOpenEditResidentCombobox}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openEditResidentCombobox}
+                      className="justify-between"
+                    >
+                      {selectedEditResident ? selectedEditResident.full_name : "Select resident..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search residents..." />
+                      <CommandList>
+                        <CommandEmpty>No resident found.</CommandEmpty>
+                        <CommandGroup>
+                          {residents.map((resident) => (
+                            <CommandItem
+                              key={resident.id}
+                              value={resident.full_name}
+                              onSelect={() => {
+                                setSelectedOfficial({ ...selectedOfficial, resident_id: resident.id });
+                                setOpenEditResidentCombobox(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedOfficial.resident_id === resident.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {resident.full_name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-position">Position</Label>
-                <Input 
-                  id="edit-position" 
+                <Select
                   value={selectedOfficial.position}
-                  onChange={(e) => setSelectedOfficial({...selectedOfficial, position: e.target.value})}
-                />
+                  onValueChange={(value) => setSelectedOfficial({ ...selectedOfficial, position: value })}
+                >
+                  <SelectTrigger id="edit-position">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Barangay Captain">Barangay Captain</SelectItem>
+                    <SelectItem value="Secretary">Secretary</SelectItem>
+                    <SelectItem value="Treasurer">Treasurer</SelectItem>
+                    <SelectItem value="Kagawad">Kagawad</SelectItem>
+                    <SelectItem value="SK Chairperson">SK Chairperson</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="edit-termStart">Term Start</Label>
-                  <Input 
-                    id="edit-termStart" 
-                    value={selectedOfficial.termStart}
-                    onChange={(e) => setSelectedOfficial({...selectedOfficial, termStart: e.target.value})}
+                  <Input
+                    id="edit-termStart"
+                    type="date"
+                    value={selectedOfficial.term_start}
+                    onChange={(e) => setSelectedOfficial({ ...selectedOfficial, term_start: e.target.value })}
                   />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-termEnd">Term End</Label>
-                  <Input 
-                    id="edit-termEnd" 
-                    value={selectedOfficial.termEnd}
-                    onChange={(e) => setSelectedOfficial({...selectedOfficial, termEnd: e.target.value})}
+                  <Input
+                    id="edit-termEnd"
+                    type="date"
+                    value={selectedOfficial.term_end || ""}
+                    onChange={(e) => setSelectedOfficial({ ...selectedOfficial, term_end: e.target.value })}
                   />
                 </div>
               </div>
@@ -337,7 +611,7 @@ const Officials = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Official</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {selectedOfficial?.name}? This action cannot be undone.
+              Are you sure you want to delete this official? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
