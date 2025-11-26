@@ -231,7 +231,7 @@ const Residents = () => {
       age: parseInt(newResident.age),
       gender: newResident.gender,
       purok: newResident.purok,
-      special_status: newResident.special_status || null,
+      special_status: newResident.special_status === "none" ? null : newResident.special_status || null,
       household_id: newResident.household_id || null,
       status: "Active"
     });
@@ -311,7 +311,7 @@ const Residents = () => {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       <SelectItem value="Senior Citizen">Senior Citizen</SelectItem>
                       <SelectItem value="PWD">PWD</SelectItem>
                     </SelectContent>
@@ -467,14 +467,14 @@ const Residents = () => {
               <div className="grid gap-2">
                 <Label htmlFor="edit-special">Special Status</Label>
                 <Select 
-                  value={selectedResident.special_status || ""}
-                  onValueChange={(value) => setSelectedResident({...selectedResident, special_status: value})}
+                  value={selectedResident.special_status || "none"}
+                  onValueChange={(value) => setSelectedResident({...selectedResident, special_status: value === "none" ? null : value})}
                 >
                   <SelectTrigger id="edit-special">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     <SelectItem value="Senior Citizen">Senior Citizen</SelectItem>
                     <SelectItem value="PWD">PWD</SelectItem>
                   </SelectContent>
