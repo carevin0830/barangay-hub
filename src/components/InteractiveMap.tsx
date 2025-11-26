@@ -86,11 +86,10 @@ const InteractiveMap = ({
     };
   }, []);
 
-  // Update marker position when props change
+  // Update marker position when props change (but don't recenter map)
   useEffect(() => {
-    if (marker.current && map.current) {
+    if (marker.current) {
       marker.current.setLngLat([longitude, latitude]);
-      map.current.setCenter([longitude, latitude]);
     }
   }, [latitude, longitude]);
 
