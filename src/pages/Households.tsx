@@ -158,7 +158,7 @@ const Households = () => {
                   id="houseNumber" 
                   placeholder="e.g., 101, 102A"
                   value={newHousehold.house_number}
-                  onChange={(e) => setNewHousehold({...newHousehold, house_number: e.target.value})}
+                  onChange={(e) => setNewHousehold(prev => ({...prev, house_number: e.target.value}))}
                 />
               </div>
               <div className="grid gap-2">
@@ -167,7 +167,7 @@ const Households = () => {
                   id="purok" 
                   placeholder="e.g., Purok 1"
                   value={newHousehold.purok}
-                  onChange={(e) => setNewHousehold({...newHousehold, purok: e.target.value})}
+                  onChange={(e) => setNewHousehold(prev => ({...prev, purok: e.target.value}))}
                 />
               </div>
               <div className="grid gap-2">
@@ -176,7 +176,7 @@ const Households = () => {
                   id="address" 
                   placeholder="e.g., Sampaguita Street"
                   value={newHousehold.street_address}
-                  onChange={(e) => setNewHousehold({...newHousehold, street_address: e.target.value})}
+                  onChange={(e) => setNewHousehold(prev => ({...prev, street_address: e.target.value}))}
                 />
               </div>
               <div className="grid gap-2">
@@ -184,7 +184,7 @@ const Households = () => {
                 <InteractiveMap 
                   latitude={newHousehold.latitude}
                   longitude={newHousehold.longitude}
-                  onLocationChange={(lat, lng) => setNewHousehold({...newHousehold, latitude: lat, longitude: lng})}
+                  onLocationChange={(lat, lng) => setNewHousehold(prev => ({...prev, latitude: lat, longitude: lng}))}
                   className="w-full h-[300px] rounded-lg border border-border"
                 />
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -199,14 +199,14 @@ const Households = () => {
                   <span className="text-sm">Connected to Electricity</span>
                   <Switch 
                     checked={newHousehold.has_electricity}
-                    onCheckedChange={(checked) => setNewHousehold({...newHousehold, has_electricity: checked})}
+                    onCheckedChange={(checked) => setNewHousehold(prev => ({...prev, has_electricity: checked}))}
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Connected to Water Supply</span>
                   <Switch 
                     checked={newHousehold.has_water}
-                    onCheckedChange={(checked) => setNewHousehold({...newHousehold, has_water: checked})}
+                    onCheckedChange={(checked) => setNewHousehold(prev => ({...prev, has_water: checked}))}
                   />
                 </div>
               </div>
@@ -339,7 +339,7 @@ const Households = () => {
                 <Input 
                   id="edit-houseNumber" 
                   value={selectedHousehold.house_number}
-                  onChange={(e) => setSelectedHousehold({...selectedHousehold, house_number: e.target.value})}
+                  onChange={(e) => setSelectedHousehold(prev => prev ? {...prev, house_number: e.target.value} : prev)}
                 />
               </div>
               <div className="grid gap-2">
@@ -347,7 +347,7 @@ const Households = () => {
                 <Input 
                   id="edit-purok" 
                   value={selectedHousehold.purok || ''}
-                  onChange={(e) => setSelectedHousehold({...selectedHousehold, purok: e.target.value})}
+                  onChange={(e) => setSelectedHousehold(prev => prev ? {...prev, purok: e.target.value} : prev)}
                 />
               </div>
               <div className="grid gap-2">
@@ -355,7 +355,7 @@ const Households = () => {
                 <Input 
                   id="edit-address" 
                   value={selectedHousehold.street_address || ''}
-                  onChange={(e) => setSelectedHousehold({...selectedHousehold, street_address: e.target.value})}
+                  onChange={(e) => setSelectedHousehold(prev => prev ? {...prev, street_address: e.target.value} : prev)}
                 />
               </div>
               <div className="grid gap-2">
@@ -363,7 +363,7 @@ const Households = () => {
                 <InteractiveMap 
                   latitude={selectedHousehold.latitude || 17.3619}
                   longitude={selectedHousehold.longitude || 120.7278}
-                  onLocationChange={(lat, lng) => setSelectedHousehold({...selectedHousehold, latitude: lat, longitude: lng})}
+                  onLocationChange={(lat, lng) => setSelectedHousehold(prev => prev ? {...prev, latitude: lat, longitude: lng} : prev)}
                   className="w-full h-[300px] rounded-lg border border-border"
                 />
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -378,14 +378,14 @@ const Households = () => {
                   <span className="text-sm">Connected to Electricity</span>
                   <Switch 
                     checked={selectedHousehold.has_electricity}
-                    onCheckedChange={(checked) => setSelectedHousehold({...selectedHousehold, has_electricity: checked})}
+                    onCheckedChange={(checked) => setSelectedHousehold(prev => prev ? {...prev, has_electricity: checked} : prev)}
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Connected to Water Supply</span>
                   <Switch 
                     checked={selectedHousehold.has_water}
-                    onCheckedChange={(checked) => setSelectedHousehold({...selectedHousehold, has_water: checked})}
+                    onCheckedChange={(checked) => setSelectedHousehold(prev => prev ? {...prev, has_water: checked} : prev)}
                   />
                 </div>
               </div>
