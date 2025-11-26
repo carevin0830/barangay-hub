@@ -8,6 +8,7 @@ import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Residents from "./pages/Residents";
 import Households from "./pages/Households";
+import Officials from "./pages/Officials";
 import Placeholder from "./pages/Placeholder";
 import NotFound from "./pages/NotFound";
 
@@ -24,16 +25,7 @@ const App = () => (
             <Route path="/" element={<Dashboard />} />
             <Route path="/residents" element={<Residents />} />
             <Route path="/households" element={<Households />} />
-            <Route 
-              path="/officials" 
-              element={
-                <Placeholder 
-                  title="Barangay Officials" 
-                  description="Manage official profiles, terms, and council structure. Coming soon."
-                  icon={FileText}
-                />
-              } 
-            />
+            <Route path="/officials" element={<Officials />} />
             <Route 
               path="/ordinances" 
               element={
