@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Building2, FileText, Calendar, BarChart3, Settings } from "lucide-react";
+import { Building2, FileText, Calendar, BarChart3, Settings, Award, FolderOpen } from "lucide-react";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Residents from "./pages/Residents";
@@ -43,6 +43,16 @@ const App = () => (
               } 
             />
             <Route 
+              path="/ordinances" 
+              element={
+                <Placeholder 
+                  title="Barangay Ordinances" 
+                  description="Manage barangay ordinances and regulations. Coming soon."
+                  icon={FileText}
+                />
+              } 
+            />
+            <Route 
               path="/activities" 
               element={
                 <Placeholder 
@@ -59,6 +69,26 @@ const App = () => (
                   title="Reports Management" 
                   description="Submit concerns, track tickets, and generate reports. Coming soon."
                   icon={BarChart3}
+                />
+              } 
+            />
+            <Route 
+              path="/certificates" 
+              element={
+                <Placeholder 
+                  title="Certificates Management" 
+                  description="Generate and manage barangay certificates. Coming soon."
+                  icon={Award}
+                />
+              } 
+            />
+            <Route 
+              path="/documents" 
+              element={
+                <Placeholder 
+                  title="Documents Management" 
+                  description="Manage barangay documents and files. Coming soon."
+                  icon={FolderOpen}
                 />
               } 
             />
