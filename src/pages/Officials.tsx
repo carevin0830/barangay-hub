@@ -69,6 +69,21 @@ const Officials = () => {
     return "bg-muted text-muted-foreground hover:bg-muted/90";
   };
 
+  const cycleStatus = (currentStatus: string) => {
+    return currentStatus === "Active" ? "Inactive" : "Active";
+  };
+
+  const handleStatusClick = (official: typeof initialOfficials[0]) => {
+    const newStatus = cycleStatus(official.status);
+    setOfficials(officials.map(o => 
+      o.id === official.id ? { ...o, status: newStatus } : o
+    ));
+    toast({
+      title: "Status updated",
+      description: `${official.name}'s status changed to ${newStatus}.`,
+    });
+  };
+
   const handleEdit = (official: typeof initialOfficials[0]) => {
     setSelectedOfficial(official);
     setIsEditDialogOpen(true);
@@ -227,7 +242,10 @@ const Officials = () => {
                 <TableCell>{official.termStart}</TableCell>
                 <TableCell className="text-muted-foreground">{official.termEnd}</TableCell>
                 <TableCell>
-                  <Badge className={getStatusBadgeStyle(official.status)}>
+                  <Badge 
+                    className={`${getStatusBadgeStyle(official.status)} cursor-pointer`}
+                    onClick={() => handleStatusClick(official)}
+                  >
                     {official.status}
                   </Badge>
                 </TableCell>
