@@ -1,6 +1,7 @@
 import { Home, Users, Building2, FileText, Calendar, BarChart3, Settings, Award, LogOut } from "lucide-react";
 import { NavLink } from "./NavLink";
 import { Button } from "./ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
@@ -19,6 +20,8 @@ interface LayoutProps {
 }
 
 const Layout = ({ children }: LayoutProps) => {
+  const { user, isAdmin, signOut } = useAuth();
+
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
@@ -51,9 +54,9 @@ const Layout = ({ children }: LayoutProps) => {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
         <header className="h-16 bg-card border-b border-border flex items-center justify-end px-8 gap-4">
-          <span className="text-sm text-foreground">cortezroxxanne700@gmail.com</span>
-          <span className="text-xs text-muted-foreground">Admin User</span>
-          <Button variant="ghost" size="sm" className="gap-2">
+          <span className="text-sm text-foreground">{user?.email}</span>
+          <span className="text-xs text-muted-foreground">{isAdmin ? 'Admin User' : 'User'}</span>
+          <Button variant="ghost" size="sm" className="gap-2" onClick={signOut}>
             <LogOut className="h-4 w-4" />
             Sign Out
           </Button>
