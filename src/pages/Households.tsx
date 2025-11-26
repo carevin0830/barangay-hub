@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Search, Home, MapPin, Edit2, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import HouseholdsMap from "@/components/HouseholdsMap";
 import InteractiveMap from "@/components/InteractiveMap";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -49,6 +48,7 @@ const Households = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isViewLocationOpen, setIsViewLocationOpen] = useState(false);
   const [selectedHousehold, setSelectedHousehold] = useState<Household | null>(null);
   
   // Form state for add dialog
@@ -65,6 +65,11 @@ const Households = () => {
   const handleEdit = (household: Household) => {
     setSelectedHousehold(household);
     setIsEditDialogOpen(true);
+  };
+
+  const handleViewLocation = (household: Household) => {
+    setSelectedHousehold(household);
+    setIsViewLocationOpen(true);
   };
 
   const handleDelete = (household: Household) => {
@@ -222,14 +227,6 @@ const Households = () => {
         </Dialog>
       </div>
 
-      {/* Map */}
-      <div className="rounded-lg border border-border bg-card overflow-hidden mb-6">
-        <div className="p-6 border-b border-border">
-          <h2 className="text-xl font-semibold text-foreground">Households Map</h2>
-        </div>
-        <HouseholdsMap className="w-full h-[400px]" />
-      </div>
-
       {/* Households Table */}
       <div className="rounded-lg border border-border bg-card">
         <div className="p-6 border-b border-border">
@@ -287,7 +284,14 @@ const Households = () => {
                   </TableCell>
                   <TableCell>
                     {household.latitude && household.longitude ? (
-                      <MapPin className="h-4 w-4 text-green-600" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleViewLocation(household)}
+                      >
+                        <MapPin className="h-4 w-4 text-green-600" />
+                      </Button>
                     ) : (
                       <MapPin className="h-4 w-4 text-muted-foreground" />
                     )}
@@ -393,6 +397,41 @@ const Households = () => {
             </Button>
             <Button className="bg-primary hover:bg-primary/90" onClick={saveEdit}>
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Location Dialog */}
+      <Dialog open={isViewLocationOpen} onOpenChange={setIsViewLocationOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Household Location</DialogTitle>
+            <DialogDescription>
+              {selectedHousehold && `House ${selectedHousehold.house_number}${selectedHousehold.purok ? ` - ${selectedHousehold.purok}` : ''}`}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedHousehold && selectedHousehold.latitude && selectedHousehold.longitude && (
+            <div className="grid gap-4 py-4">
+              <InteractiveMap 
+                latitude={selectedHousehold.latitude}
+                longitude={selectedHousehold.longitude}
+                className="w-full h-[400px] rounded-lg border border-border"
+              />
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                <span>{selectedHousehold.latitude.toFixed(6)}, {selectedHousehold.longitude.toFixed(6)}</span>
+              </div>
+              {selectedHousehold.street_address && (
+                <p className="text-sm text-muted-foreground">
+                  {selectedHousehold.street_address}
+                </p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setIsViewLocationOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
