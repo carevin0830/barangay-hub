@@ -122,6 +122,7 @@ const Dashboard = () => {
             icon={Users}
             trend={`+${recentResidentsCount} this month`}
             trendUp
+            href="/residents"
           />
           <DashboardCard
             title="Total Households"
@@ -129,18 +130,21 @@ const Dashboard = () => {
             icon={Building2}
             trend={`+${recentHouseholdsCount} this month`}
             trendUp
+            href="/households"
           />
           <DashboardCard
             title="Active Ordinances"
             value={ordinances.length}
             icon={Activity}
             trend={`${ordinances.length} total`}
+            href="/ordinances"
           />
           <DashboardCard
             title="Certificates Issued"
             value={certificates.length}
             icon={FileText}
             trend={`${pendingCertificates} pending`}
+            href="/certificates"
           />
         </div>
 
