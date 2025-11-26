@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
-import { Search, UserPlus, FileText, MapPin, Edit2, Trash2 } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Search, UserPlus, FileText, MapPin, Edit2, Trash2, Users } from "lucide-react";
 import InteractiveMap from "@/components/InteractiveMap";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -284,6 +285,11 @@ const Residents = () => {
     });
   };
 
+  const totalResidents = residents.length;
+  const activeResidents = useMemo(() => residents.filter(r => r.status === 'Active').length, [residents]);
+  const seniorCitizens = useMemo(() => residents.filter(r => r.special_status === 'Senior Citizen').length, [residents]);
+  const pwdResidents = useMemo(() => residents.filter(r => r.special_status === 'PWD').length, [residents]);
+
   return (
     <div className="p-6 md:p-8">
       {/* Top Actions Bar */}
@@ -388,6 +394,54 @@ const Residents = () => {
             </DialogContent>
           </Dialog>
         </div>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <Users className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{totalResidents}</p>
+                <p className="text-sm text-muted-foreground">Total</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <Users className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{activeResidents}</p>
+                <p className="text-sm text-muted-foreground">Active</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <Users className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{seniorCitizens}</p>
+                <p className="text-sm text-muted-foreground">Seniors</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <Users className="h-5 w-5 text-orange-600" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{pwdResidents}</p>
+                <p className="text-sm text-muted-foreground">PWD</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Search Bar */}
