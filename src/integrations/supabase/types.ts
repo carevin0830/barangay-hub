@@ -53,6 +53,53 @@ export type Database = {
         }
         Relationships: []
       }
+      residents: {
+        Row: {
+          age: number
+          created_at: string
+          full_name: string
+          gender: string
+          household_id: string | null
+          id: string
+          purok: string
+          special_status: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          age: number
+          created_at?: string
+          full_name: string
+          gender: string
+          household_id?: string | null
+          id?: string
+          purok: string
+          special_status?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          age?: number
+          created_at?: string
+          full_name?: string
+          gender?: string
+          household_id?: string | null
+          id?: string
+          purok?: string
+          special_status?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "residents_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
