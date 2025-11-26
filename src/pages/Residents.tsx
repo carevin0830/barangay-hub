@@ -20,6 +20,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -28,8 +38,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
-const mockResidents = [
+const initialResidents = [
   { id: 1, name: "CATHERINE ARTIENDA DUMLAO", age: 42, houseNumber: "106", status: "Active", specialStatus: "—", location: "Zone 1" },
   { id: 2, name: "Floricante L Cortez", age: 32, houseNumber: "103", status: "Active", specialStatus: "Senior", location: "Zone 2" },
   { id: 3, name: "Elizabeth Ballena Oca", age: 57, houseNumber: "105", status: "Active", specialStatus: "—", location: "Zone 1" },
@@ -37,14 +48,55 @@ const mockResidents = [
 ];
 
 const Residents = () => {
+  const { toast } = useToast();
+  const [residents, setResidents] = useState(initialResidents);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedResident, setSelectedResident] = useState<typeof initialResidents[0] | null>(null);
 
   const getStatusBadgeStyle = (status: string) => {
     if (status === "Active") {
       return "border border-primary text-primary bg-transparent hover:bg-primary/5";
     }
     return "border border-muted-foreground text-muted-foreground bg-transparent hover:bg-muted/5";
+  };
+
+  const handleEdit = (resident: typeof initialResidents[0]) => {
+    setSelectedResident(resident);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (resident: typeof initialResidents[0]) => {
+    setSelectedResident(resident);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedResident) {
+      setResidents(residents.filter(r => r.id !== selectedResident.id));
+      toast({
+        title: "Resident deleted",
+        description: `${selectedResident.name} has been removed from the registry.`,
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedResident(null);
+    }
+  };
+
+  const saveEdit = () => {
+    if (selectedResident) {
+      setResidents(residents.map(r => 
+        r.id === selectedResident.id ? selectedResident : r
+      ));
+      toast({
+        title: "Resident updated",
+        description: `${selectedResident.name}'s information has been updated.`,
+      });
+      setIsEditDialogOpen(false);
+      setSelectedResident(null);
+    }
   };
 
   return (
@@ -169,7 +221,7 @@ const Residents = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockResidents.map((resident) => (
+            {residents.map((resident) => (
               <TableRow key={resident.id}>
                 <TableCell className="font-medium">{resident.name}</TableCell>
                 <TableCell>{resident.age}</TableCell>
@@ -185,10 +237,20 @@ const Residents = () => {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleEdit(resident)}
+                    >
                       <Edit2 className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(resident)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -198,6 +260,109 @@ const Residents = () => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Resident</DialogTitle>
+            <DialogDescription>
+              Update the resident's information.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedResident && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-fullname">Full Name</Label>
+                <Input 
+                  id="edit-fullname" 
+                  value={selectedResident.name}
+                  onChange={(e) => setSelectedResident({...selectedResident, name: e.target.value})}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-age">Age</Label>
+                  <Input 
+                    id="edit-age" 
+                    type="number" 
+                    value={selectedResident.age}
+                    onChange={(e) => setSelectedResident({...selectedResident, age: parseInt(e.target.value)})}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-house">House Number</Label>
+                  <Input 
+                    id="edit-house" 
+                    value={selectedResident.houseNumber}
+                    onChange={(e) => setSelectedResident({...selectedResident, houseNumber: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-zone">Zone/Purok</Label>
+                <Select 
+                  value={selectedResident.location}
+                  onValueChange={(value) => setSelectedResident({...selectedResident, location: value})}
+                >
+                  <SelectTrigger id="edit-zone">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Zone 1">Zone 1</SelectItem>
+                    <SelectItem value="Zone 2">Zone 2</SelectItem>
+                    <SelectItem value="Zone 3">Zone 3</SelectItem>
+                    <SelectItem value="Zone 4">Zone 4</SelectItem>
+                    <SelectItem value="Zone 5">Zone 5</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-special">Special Status</Label>
+                <Select 
+                  value={selectedResident.specialStatus}
+                  onValueChange={(value) => setSelectedResident({...selectedResident, specialStatus: value})}
+                >
+                  <SelectTrigger id="edit-special">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="—">None</SelectItem>
+                    <SelectItem value="Senior">Senior Citizen</SelectItem>
+                    <SelectItem value="PWD">PWD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-primary hover:bg-primary/90" onClick={saveEdit}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Resident</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedResident?.name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
