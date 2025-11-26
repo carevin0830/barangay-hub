@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, Key } from "lucide-react";
+import { Save, Key, UserPlus, Trash2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,11 +10,24 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("profile");
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const queryClient = useQueryClient();
+
+  // User management state
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [isEditUserOpen, setIsEditUserOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserFullName, setNewUserFullName] = useState("");
+  const [newUserRole, setNewUserRole] = useState<"admin" | "staff" | "read_only">("staff");
+  const [editUserRole, setEditUserRole] = useState<"admin" | "staff" | "read_only">("staff");
 
   // Profile state
   const [fullName, setFullName] = useState("");
@@ -61,6 +74,38 @@ const Settings = () => {
       if (error) throw error;
       return data;
     },
+  });
+
+  // Fetch all users with their roles
+  const { data: allUsers, isLoading: usersLoading } = useQuery({
+    queryKey: ['all_users'],
+    queryFn: async () => {
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*');
+      
+      if (profilesError) throw profilesError;
+
+      // Fetch roles for each user
+      const usersWithRoles = await Promise.all(
+        profiles.map(async (profile) => {
+          const { data: roles, error: rolesError } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', profile.id);
+          
+          if (rolesError) throw rolesError;
+          
+          return {
+            ...profile,
+            roles: roles.map(r => r.role),
+          };
+        })
+      );
+
+      return usersWithRoles;
+    },
+    enabled: isAdmin,
   });
 
   // Update profile state when data loads
@@ -152,14 +197,99 @@ const Settings = () => {
   };
 
   const handleSaveBarangay = () => {
-    updateBarangayMutation.mutate({
-      barangay_name: barangayName,
-      municipality: municipality,
-      province: province,
-      address: address,
-      contact_number: contactNumber,
-      email: barangayEmail,
-    });
+    if (!barangaySettings?.id) {
+      // Create new barangay settings if none exist
+      supabase
+        .from('barangay_settings')
+        .insert({
+          barangay_name: barangayName,
+          municipality: municipality,
+          province: province,
+          address: address,
+          contact_number: contactNumber,
+          email: barangayEmail,
+        })
+        .then(({ error }) => {
+          if (error) {
+            toast.error(error.message);
+          } else {
+            toast.success('Barangay settings created successfully');
+            queryClient.invalidateQueries({ queryKey: ['barangay_settings'] });
+          }
+        });
+    } else {
+      updateBarangayMutation.mutate({
+        barangay_name: barangayName,
+        municipality: municipality,
+        province: province,
+        address: address,
+        contact_number: contactNumber,
+        email: barangayEmail,
+      });
+    }
+  };
+
+  // Add new user
+  const handleAddUser = async () => {
+    if (!newUserEmail || !newUserPassword || !newUserFullName) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    try {
+      // This would typically be done via an admin function
+      toast.info('New users need to sign up via the auth page. You can then assign them roles here.');
+      setIsAddUserOpen(false);
+      setNewUserEmail("");
+      setNewUserPassword("");
+      setNewUserFullName("");
+      setNewUserRole("staff");
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  // Update user role
+  const handleUpdateUserRole = async () => {
+    if (!selectedUserId) return;
+
+    try {
+      // First, remove existing role
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', selectedUserId);
+
+      // Then add new role
+      const { error } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: selectedUserId,
+          role: editUserRole,
+        });
+
+      if (error) throw error;
+
+      toast.success('User role updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['all_users'] });
+      setIsEditUserOpen(false);
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  // Delete user
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const { error } = await supabase.auth.admin.deleteUser(userId);
+      
+      if (error) throw error;
+
+      toast.success('User deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['all_users'] });
+    } catch (error: any) {
+      toast.error('Unable to delete user. Admin API access required.');
+    }
   };
 
   return (
@@ -355,29 +485,172 @@ const Settings = () => {
 
         {/* Users Management Tab */}
         <TabsContent value="users" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-              <CardDescription>Manage user accounts and permissions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                  <div>
-                    <p className="font-medium">cortezroxxanne700@gmail.com</p>
-                    <p className="text-sm text-muted-foreground">Admin User</p>
+          {!isAdmin ? (
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-center text-muted-foreground">You need admin privileges to manage users.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>User Management</CardTitle>
+                  <CardDescription>Manage user accounts and permissions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {usersLoading ? (
+                      <p className="text-sm text-muted-foreground">Loading users...</p>
+                    ) : allUsers && allUsers.length > 0 ? (
+                      allUsers.map((u) => (
+                        <div key={u.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
+                          <div>
+                            <p className="font-medium">{u.email}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {u.full_name || 'No name'} • {u.roles.length > 0 ? u.roles.join(', ') : 'No role assigned'}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Dialog open={isEditUserOpen && selectedUserId === u.id} onOpenChange={(open) => {
+                              setIsEditUserOpen(open);
+                              if (open) {
+                                setSelectedUserId(u.id);
+                                setEditUserRole(u.roles[0] || 'staff');
+                              }
+                            }}>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <Shield className="h-4 w-4 mr-2" />
+                                  Edit Role
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Edit User Role</DialogTitle>
+                                  <DialogDescription>Change the role for {u.email}</DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                  <div className="space-y-2">
+                                    <Label>Role</Label>
+                                    <Select value={editUserRole} onValueChange={(value: any) => setEditUserRole(value)}>
+                                      <SelectTrigger>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="admin">Admin</SelectItem>
+                                        <SelectItem value="staff">Staff</SelectItem>
+                                        <SelectItem value="read_only">Read Only</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                                <DialogFooter>
+                                  <Button variant="outline" onClick={() => setIsEditUserOpen(false)}>Cancel</Button>
+                                  <Button onClick={handleUpdateUserRole}>Update Role</Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                            
+                            {u.id !== user?.id && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="outline" size="sm" className="text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete {u.email}? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteUser(u.id)} className="bg-destructive text-destructive-foreground">
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No users found.</p>
+                    )}
+                    
+                    <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="w-full bg-primary hover:bg-primary/90">
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Add New User
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add New User</DialogTitle>
+                          <DialogDescription>
+                            Note: New users must sign up via the auth page. Use this to document expected users.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="new-email">Email</Label>
+                            <Input 
+                              id="new-email"
+                              type="email"
+                              value={newUserEmail}
+                              onChange={(e) => setNewUserEmail(e.target.value)}
+                              placeholder="user@example.com"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="new-fullname">Full Name</Label>
+                            <Input 
+                              id="new-fullname"
+                              value={newUserFullName}
+                              onChange={(e) => setNewUserFullName(e.target.value)}
+                              placeholder="John Doe"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="new-password">Password</Label>
+                            <Input 
+                              id="new-password"
+                              type="password"
+                              value={newUserPassword}
+                              onChange={(e) => setNewUserPassword(e.target.value)}
+                              placeholder="••••••••"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Default Role</Label>
+                            <Select value={newUserRole} onValueChange={(value: any) => setNewUserRole(value)}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="staff">Staff</SelectItem>
+                                <SelectItem value="read_only">Read Only</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setIsAddUserOpen(false)}>Cancel</Button>
+                          <Button onClick={handleAddUser}>Add User</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">Edit</Button>
-                    <Button variant="outline" size="sm" className="text-destructive">Remove</Button>
-                  </div>
-                </div>
-                <Button className="w-full bg-primary hover:bg-primary/90">
-                  Add New User
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </>
+          )}
 
           <Card>
             <CardHeader>
