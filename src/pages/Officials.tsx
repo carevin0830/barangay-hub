@@ -21,6 +21,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -29,8 +39,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
-const mockOfficials = [
+const initialOfficials = [
   {
     id: 1,
     name: "CATHERINE ARTIENDA DUMLAO",
@@ -43,14 +54,55 @@ const mockOfficials = [
 ];
 
 const Officials = () => {
+  const { toast } = useToast();
+  const [officials, setOfficials] = useState(initialOfficials);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedOfficial, setSelectedOfficial] = useState<typeof initialOfficials[0] | null>(null);
 
   const getStatusBadgeStyle = (status: string) => {
     if (status === "Active") {
       return "bg-primary text-primary-foreground hover:bg-primary/90";
     }
     return "bg-muted text-muted-foreground hover:bg-muted/90";
+  };
+
+  const handleEdit = (official: typeof initialOfficials[0]) => {
+    setSelectedOfficial(official);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (official: typeof initialOfficials[0]) => {
+    setSelectedOfficial(official);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedOfficial) {
+      setOfficials(officials.filter(o => o.id !== selectedOfficial.id));
+      toast({
+        title: "Official deleted",
+        description: `${selectedOfficial.name} has been removed.`,
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedOfficial(null);
+    }
+  };
+
+  const saveEdit = () => {
+    if (selectedOfficial) {
+      setOfficials(officials.map(o => 
+        o.id === selectedOfficial.id ? selectedOfficial : o
+      ));
+      toast({
+        title: "Official updated",
+        description: `${selectedOfficial.name}'s information has been updated.`,
+      });
+      setIsEditDialogOpen(false);
+      setSelectedOfficial(null);
+    }
   };
 
   return (
@@ -161,7 +213,7 @@ const Officials = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockOfficials.map((official) => (
+            {officials.map((official) => (
               <TableRow key={official.id}>
                 <TableCell>
                   <Avatar className="h-10 w-10">
@@ -181,10 +233,20 @@ const Officials = () => {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleEdit(official)}
+                    >
                       <Edit2 className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(official)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -194,6 +256,82 @@ const Officials = () => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Official</DialogTitle>
+            <DialogDescription>
+              Update the official's information.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOfficial && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-fullname">Full Name</Label>
+                <Input 
+                  id="edit-fullname" 
+                  value={selectedOfficial.name}
+                  onChange={(e) => setSelectedOfficial({...selectedOfficial, name: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-position">Position</Label>
+                <Input 
+                  id="edit-position" 
+                  value={selectedOfficial.position}
+                  onChange={(e) => setSelectedOfficial({...selectedOfficial, position: e.target.value})}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-termStart">Term Start</Label>
+                  <Input 
+                    id="edit-termStart" 
+                    value={selectedOfficial.termStart}
+                    onChange={(e) => setSelectedOfficial({...selectedOfficial, termStart: e.target.value})}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-termEnd">Term End</Label>
+                  <Input 
+                    id="edit-termEnd" 
+                    value={selectedOfficial.termEnd}
+                    onChange={(e) => setSelectedOfficial({...selectedOfficial, termEnd: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-primary hover:bg-primary/90" onClick={saveEdit}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Official</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedOfficial?.name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Plus, Eye, Download, Trash2 } from "lucide-react";
+import { Search, Plus, Eye, Download, Trash2, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,6 +20,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -29,8 +39,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
-const mockCertificates = [
+const initialCertificates = [
   {
     id: 1,
     certificateNo: "CERT-2025-4717",
@@ -114,8 +125,13 @@ const mockCertificates = [
 ];
 
 const Certificates = () => {
+  const { toast } = useToast();
+  const [certificates, setCertificates] = useState(initialCertificates);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedCertificate, setSelectedCertificate] = useState<typeof initialCertificates[0] | null>(null);
 
   const getStatusBadgeStyle = (status: string) => {
     if (status === "Active") {
@@ -125,6 +141,42 @@ const Certificates = () => {
       return "bg-destructive text-destructive-foreground hover:bg-destructive/90";
     }
     return "bg-muted text-muted-foreground hover:bg-muted/90";
+  };
+
+  const handleEdit = (certificate: typeof initialCertificates[0]) => {
+    setSelectedCertificate(certificate);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (certificate: typeof initialCertificates[0]) => {
+    setSelectedCertificate(certificate);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedCertificate) {
+      setCertificates(certificates.filter(c => c.id !== selectedCertificate.id));
+      toast({
+        title: "Certificate deleted",
+        description: `${selectedCertificate.certificateNo} has been removed.`,
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedCertificate(null);
+    }
+  };
+
+  const saveEdit = () => {
+    if (selectedCertificate) {
+      setCertificates(certificates.map(c => 
+        c.id === selectedCertificate.id ? selectedCertificate : c
+      ));
+      toast({
+        title: "Certificate updated",
+        description: `${selectedCertificate.certificateNo} has been updated.`,
+      });
+      setIsEditDialogOpen(false);
+      setSelectedCertificate(null);
+    }
   };
 
   return (
@@ -230,7 +282,7 @@ const Certificates = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockCertificates.map((certificate) => (
+            {certificates.map((certificate) => (
               <TableRow key={certificate.id}>
                 <TableCell className="font-mono text-sm">{certificate.certificateNo}</TableCell>
                 <TableCell className="text-secondary">{certificate.type}</TableCell>
@@ -251,7 +303,20 @@ const Certificates = () => {
                     <Button variant="ghost" size="icon" className="h-8 w-8">
                       <Download className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleEdit(certificate)}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(certificate)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -261,6 +326,91 @@ const Certificates = () => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Certificate</DialogTitle>
+            <DialogDescription>
+              Update the certificate information.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedCertificate && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-type">Certificate Type</Label>
+                <Input 
+                  id="edit-type" 
+                  value={selectedCertificate.type}
+                  onChange={(e) => setSelectedCertificate({...selectedCertificate, type: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-resident">Resident Name</Label>
+                <Input 
+                  id="edit-resident" 
+                  value={selectedCertificate.resident}
+                  onChange={(e) => setSelectedCertificate({...selectedCertificate, resident: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-purpose">Purpose</Label>
+                <Textarea 
+                  id="edit-purpose" 
+                  value={selectedCertificate.purpose}
+                  onChange={(e) => setSelectedCertificate({...selectedCertificate, purpose: e.target.value})}
+                  rows={3}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-issuedDate">Issued Date</Label>
+                  <Input 
+                    id="edit-issuedDate" 
+                    value={selectedCertificate.issuedDate}
+                    onChange={(e) => setSelectedCertificate({...selectedCertificate, issuedDate: e.target.value})}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-validUntil">Valid Until</Label>
+                  <Input 
+                    id="edit-validUntil" 
+                    value={selectedCertificate.validUntil}
+                    onChange={(e) => setSelectedCertificate({...selectedCertificate, validUntil: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-primary hover:bg-primary/90" onClick={saveEdit}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Certificate</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedCertificate?.certificateNo}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

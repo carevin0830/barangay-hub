@@ -20,6 +20,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -29,8 +39,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
-const mockActivities = [
+const initialActivities = [
   {
     id: 1,
     activity: "test",
@@ -44,8 +55,13 @@ const mockActivities = [
 ];
 
 const Activities = () => {
+  const { toast } = useToast();
+  const [activities, setActivities] = useState(initialActivities);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<typeof initialActivities[0] | null>(null);
 
   const getStatusBadgeStyle = (status: string) => {
     if (status === "Upcoming") {
@@ -61,6 +77,42 @@ const Activities = () => {
       return "bg-destructive text-destructive-foreground hover:bg-destructive/90";
     }
     return "bg-muted text-muted-foreground hover:bg-muted/90";
+  };
+
+  const handleEdit = (activity: typeof initialActivities[0]) => {
+    setSelectedActivity(activity);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (activity: typeof initialActivities[0]) => {
+    setSelectedActivity(activity);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedActivity) {
+      setActivities(activities.filter(a => a.id !== selectedActivity.id));
+      toast({
+        title: "Activity deleted",
+        description: `${selectedActivity.activity} has been removed.`,
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedActivity(null);
+    }
+  };
+
+  const saveEdit = () => {
+    if (selectedActivity) {
+      setActivities(activities.map(a => 
+        a.id === selectedActivity.id ? selectedActivity : a
+      ));
+      toast({
+        title: "Activity updated",
+        description: `${selectedActivity.activity} has been updated.`,
+      });
+      setIsEditDialogOpen(false);
+      setSelectedActivity(null);
+    }
   };
 
   return (
@@ -182,7 +234,7 @@ const Activities = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockActivities.map((activity) => (
+            {activities.map((activity) => (
               <TableRow key={activity.id}>
                 <TableCell>
                   <div>
@@ -224,10 +276,20 @@ const Activities = () => {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleEdit(activity)}
+                    >
                       <Edit2 className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(activity)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -237,6 +299,81 @@ const Activities = () => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Activity</DialogTitle>
+            <DialogDescription>
+              Update the activity information.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedActivity && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-activity">Activity Name</Label>
+                <Input 
+                  id="edit-activity" 
+                  value={selectedActivity.activity}
+                  onChange={(e) => setSelectedActivity({...selectedActivity, activity: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea 
+                  id="edit-description" 
+                  value={selectedActivity.subtitle}
+                  onChange={(e) => setSelectedActivity({...selectedActivity, subtitle: e.target.value})}
+                  rows={3}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-type">Type</Label>
+                <Input 
+                  id="edit-type" 
+                  value={selectedActivity.type}
+                  onChange={(e) => setSelectedActivity({...selectedActivity, type: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-location">Location</Label>
+                <Input 
+                  id="edit-location" 
+                  value={selectedActivity.location}
+                  onChange={(e) => setSelectedActivity({...selectedActivity, location: e.target.value})}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-primary hover:bg-primary/90" onClick={saveEdit}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Activity</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedActivity?.activity}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

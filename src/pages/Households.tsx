@@ -19,6 +19,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -27,16 +37,58 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
-const mockHouseholds = [
+const initialHouseholds = [
   { id: 1, houseNumber: "103", purok: "Longlongboy", address: "Villamor Street", residents: 2, utilities: "No utilities" },
   { id: 2, houseNumber: "105", purok: "bisil", address: "bravo street", residents: 1, utilities: "No utilities" },
   { id: 3, houseNumber: "106", purok: "ZONE 3", address: "LUMCANG STREET", residents: 1, utilities: "No utilities" },
 ];
 
 const Households = () => {
+  const { toast } = useToast();
+  const [households, setHouseholds] = useState(initialHouseholds);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedHousehold, setSelectedHousehold] = useState<typeof initialHouseholds[0] | null>(null);
+
+  const handleEdit = (household: typeof initialHouseholds[0]) => {
+    setSelectedHousehold(household);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (household: typeof initialHouseholds[0]) => {
+    setSelectedHousehold(household);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedHousehold) {
+      setHouseholds(households.filter(h => h.id !== selectedHousehold.id));
+      toast({
+        title: "Household deleted",
+        description: `House ${selectedHousehold.houseNumber} has been removed.`,
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedHousehold(null);
+    }
+  };
+
+  const saveEdit = () => {
+    if (selectedHousehold) {
+      setHouseholds(households.map(h => 
+        h.id === selectedHousehold.id ? selectedHousehold : h
+      ));
+      toast({
+        title: "Household updated",
+        description: `House ${selectedHousehold.houseNumber} has been updated.`,
+      });
+      setIsEditDialogOpen(false);
+      setSelectedHousehold(null);
+    }
+  };
 
   return (
     <div className="p-6 md:p-8">
@@ -144,7 +196,7 @@ const Households = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockHouseholds.map((household) => (
+            {households.map((household) => (
               <TableRow key={household.id}>
                 <TableCell className="font-medium">{household.houseNumber}</TableCell>
                 <TableCell className="text-secondary">{household.purok}</TableCell>
@@ -163,10 +215,20 @@ const Households = () => {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleEdit(household)}
+                    >
                       <Edit2 className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(household)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -176,6 +238,80 @@ const Households = () => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Household</DialogTitle>
+            <DialogDescription>
+              Update the household information.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedHousehold && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-houseNumber">House Number</Label>
+                <Input 
+                  id="edit-houseNumber" 
+                  value={selectedHousehold.houseNumber}
+                  onChange={(e) => setSelectedHousehold({...selectedHousehold, houseNumber: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-purok">Purok/Zone</Label>
+                <Input 
+                  id="edit-purok" 
+                  value={selectedHousehold.purok}
+                  onChange={(e) => setSelectedHousehold({...selectedHousehold, purok: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-address">Address</Label>
+                <Input 
+                  id="edit-address" 
+                  value={selectedHousehold.address}
+                  onChange={(e) => setSelectedHousehold({...selectedHousehold, address: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-utilities">Utilities Status</Label>
+                <Input 
+                  id="edit-utilities" 
+                  value={selectedHousehold.utilities}
+                  onChange={(e) => setSelectedHousehold({...selectedHousehold, utilities: e.target.value})}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-primary hover:bg-primary/90" onClick={saveEdit}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Household</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete House {selectedHousehold?.houseNumber}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

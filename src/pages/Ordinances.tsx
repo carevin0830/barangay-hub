@@ -20,6 +20,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -29,8 +39,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
-const mockOrdinances = [
+const initialOrdinances = [
   {
     id: 1,
     ordinanceNo: "8788",
@@ -50,8 +61,13 @@ const mockOrdinances = [
 ];
 
 const Ordinances = () => {
+  const { toast } = useToast();
+  const [ordinances, setOrdinances] = useState(initialOrdinances);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedOrdinance, setSelectedOrdinance] = useState<typeof initialOrdinances[0] | null>(null);
 
   const getStatusBadgeStyle = (status: string) => {
     if (status === "Active") {
@@ -61,6 +77,42 @@ const Ordinances = () => {
       return "bg-secondary text-secondary-foreground hover:bg-secondary/90";
     }
     return "bg-muted text-muted-foreground hover:bg-muted/90";
+  };
+
+  const handleEdit = (ordinance: typeof initialOrdinances[0]) => {
+    setSelectedOrdinance(ordinance);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (ordinance: typeof initialOrdinances[0]) => {
+    setSelectedOrdinance(ordinance);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedOrdinance) {
+      setOrdinances(ordinances.filter(o => o.id !== selectedOrdinance.id));
+      toast({
+        title: "Ordinance deleted",
+        description: `${selectedOrdinance.ordinanceNo} has been removed.`,
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedOrdinance(null);
+    }
+  };
+
+  const saveEdit = () => {
+    if (selectedOrdinance) {
+      setOrdinances(ordinances.map(o => 
+        o.id === selectedOrdinance.id ? selectedOrdinance : o
+      ));
+      toast({
+        title: "Ordinance updated",
+        description: `${selectedOrdinance.ordinanceNo} has been updated.`,
+      });
+      setIsEditDialogOpen(false);
+      setSelectedOrdinance(null);
+    }
   };
 
   return (
@@ -152,7 +204,7 @@ const Ordinances = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockOrdinances.map((ordinance) => (
+            {ordinances.map((ordinance) => (
               <TableRow key={ordinance.id}>
                 <TableCell className="font-medium">{ordinance.ordinanceNo}</TableCell>
                 <TableCell className="max-w-md">
@@ -173,10 +225,20 @@ const Ordinances = () => {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleEdit(ordinance)}
+                    >
                       <Edit2 className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(ordinance)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -186,6 +248,81 @@ const Ordinances = () => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Ordinance</DialogTitle>
+            <DialogDescription>
+              Update the ordinance information.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOrdinance && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-ordinanceNo">Ordinance Number</Label>
+                <Input 
+                  id="edit-ordinanceNo" 
+                  value={selectedOrdinance.ordinanceNo}
+                  onChange={(e) => setSelectedOrdinance({...selectedOrdinance, ordinanceNo: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-title">Title</Label>
+                <Input 
+                  id="edit-title" 
+                  value={selectedOrdinance.title}
+                  onChange={(e) => setSelectedOrdinance({...selectedOrdinance, title: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-subtitle">Description/Section</Label>
+                <Textarea 
+                  id="edit-subtitle" 
+                  value={selectedOrdinance.subtitle}
+                  onChange={(e) => setSelectedOrdinance({...selectedOrdinance, subtitle: e.target.value})}
+                  rows={4}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-dateEnacted">Date Enacted</Label>
+                <Input 
+                  id="edit-dateEnacted" 
+                  value={selectedOrdinance.dateEnacted}
+                  onChange={(e) => setSelectedOrdinance({...selectedOrdinance, dateEnacted: e.target.value})}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-primary hover:bg-primary/90" onClick={saveEdit}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Ordinance</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedOrdinance?.ordinanceNo}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
