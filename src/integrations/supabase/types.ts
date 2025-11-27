@@ -353,6 +353,7 @@ export type Database = {
           gender: string
           household_id: string | null
           id: string
+          photo_url: string | null
           purok: string
           special_status: string | null
           status: string
@@ -365,6 +366,7 @@ export type Database = {
           gender: string
           household_id?: string | null
           id?: string
+          photo_url?: string | null
           purok: string
           special_status?: string | null
           status?: string
@@ -377,6 +379,7 @@ export type Database = {
           gender?: string
           household_id?: string | null
           id?: string
+          photo_url?: string | null
           purok?: string
           special_status?: string | null
           status?: string
