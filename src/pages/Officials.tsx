@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Search, UserPlus, Edit2, Trash2, Check, ChevronsUpDown } from "lucide-react";
+import { useState, useRef } from "react";
+import { Search, UserPlus, Edit2, Trash2, Check, ChevronsUpDown, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -68,6 +68,7 @@ type Official = {
   updated_at: string;
   residents: {
     full_name: string;
+    photo_url: string | null;
   };
 };
 
@@ -88,6 +89,8 @@ const Officials = () => {
   const [selectedOfficial, setSelectedOfficial] = useState<Official | null>(null);
   const [openResidentCombobox, setOpenResidentCombobox] = useState(false);
   const [openEditResidentCombobox, setOpenEditResidentCombobox] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [newOfficial, setNewOfficial] = useState({
     resident_id: "",
     position: "",
@@ -102,7 +105,7 @@ const Officials = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('officials')
-        .select('*, residents(full_name)')
+        .select('*, residents(full_name, photo_url)')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -269,6 +272,73 @@ const Officials = () => {
     });
   };
 
+  const handlePhotoUpload = async (residentId: string, file: File) => {
+    try {
+      setUploadingPhoto(residentId);
+      
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${residentId}-${Date.now()}.${fileExt}`;
+      
+      // Upload to storage
+      const { error: uploadError, data } = await supabase.storage
+        .from('official-photos')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('official-photos')
+        .getPublicUrl(fileName);
+
+      // Update resident record with photo URL
+      const { error: updateError } = await supabase
+        .from('residents')
+        .update({ photo_url: publicUrl })
+        .eq('id', residentId);
+
+      if (updateError) throw updateError;
+
+      // Refresh officials data
+      queryClient.invalidateQueries({ queryKey: ['officials'] });
+
+      toast({
+        title: "Photo uploaded",
+        description: "Official photo has been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload photo. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingPhoto(null);
+    }
+  };
+
+  const triggerPhotoUpload = (residentId: string) => {
+    const input = fileInputRef.current;
+    if (input) {
+      input.dataset.residentId = residentId;
+      input.click();
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const residentId = e.target.dataset.residentId;
+    
+    if (file && residentId) {
+      handlePhotoUpload(residentId, file);
+    }
+    
+    // Reset input
+    e.target.value = '';
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -288,6 +358,16 @@ const Officials = () => {
 
   return (
     <div className="p-6 md:p-8">
+      {/* Hidden file input for photo uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+        data-resident-id=""
+      />
+      
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-semibold text-foreground mb-1">
@@ -453,11 +533,26 @@ const Officials = () => {
             {filteredOfficials.map((official) => (
               <TableRow key={official.id}>
                 <TableCell>
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-muted text-muted-foreground font-medium">
-                      {getInitials(official.residents.full_name)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative group">
+                    <Avatar className="h-10 w-10">
+                      {official.residents.photo_url && (
+                        <AvatarImage 
+                          src={official.residents.photo_url} 
+                          alt={official.residents.full_name}
+                        />
+                      )}
+                      <AvatarFallback className="bg-muted text-muted-foreground font-medium">
+                        {getInitials(official.residents.full_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <button
+                      onClick={() => triggerPhotoUpload(official.resident_id)}
+                      disabled={uploadingPhoto === official.resident_id}
+                      className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Camera className="h-4 w-4 text-white" />
+                    </button>
+                  </div>
                 </TableCell>
                 <TableCell className="font-medium">{official.residents.full_name}</TableCell>
                 <TableCell className="text-muted-foreground">{official.position}</TableCell>
